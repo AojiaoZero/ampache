@@ -5,9 +5,10 @@ header('Connection: Close');
 
 set_time_limit(0);
 
-$path = dirname(__FILE__);
+$path   = dirname(__FILE__);
 $prefix = realpath($path . '/../');
-require_once $prefix . '/lib/init.php';
+$a_root = realpath(__DIR__ . "/../");
+require_once $a_root . '/lib/init.php';
 require_once $prefix . '/modules/localplay/upnp/upnp.controller.php';
 require_once $prefix . '/modules/localplay/upnp/upnpplayer.class.php';
 
@@ -17,7 +18,7 @@ if (!AmpConfig::get('upnp_backend')) {
 
 // get current UPnP player instance
 $controller = new AmpacheUPnP();
-$instance = $controller->get_instance();
+$instance   = $controller->get_instance();
 echo "UPnP instance = " . $instance['name'] . "\n";
 
 $deviceDescr = $instance['url'];
@@ -39,12 +40,10 @@ echo "STATE = " . $state . "\n";
 // If the song was played and then finished, start to play next song in list.
 // Do not start anything if playback was stopped from beginning
 if ($played) {
-    echo "UPnP play next" . "\n";
+    echo T_("Play next") . "\n";
     if ($player->Next(false)) {
-        echo "Next song started" . "\n";
+        echo T_("The next song has started") . "\n";
     } else {
-        echo "Next song FAILED!" . "\n";
+        echo T_("The next song failed to start") . "\n";
     }
 }
-
-?>

@@ -2,28 +2,27 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-require $prefix . '/templates/install_header.inc.php';
-?>
-<div class="jumbotron">
-    <h1><?php echo T_('Install progress'); ?></h1>
+require $prefix . '/templates/install_header.inc.php'; ?>
+<div class="jumbotron" style="margin-top: 70px">
+    <h1><?php echo T_('Install Progress'); ?></h1>
     <div class="progress">
         <div class="progress-bar progress-bar-warning"
             role="progressbar"
@@ -36,14 +35,14 @@ require $prefix . '/templates/install_header.inc.php';
     </div>
     <p><strong><?php echo T_('Step 1 - Create the Ampache database'); ?></strong></p>
     <dl>
-        <dd><?php echo T_('This step creates and inserts the Ampache database, so please provide a MySQL account with database creation rights. This step may take some time on slower computers.'); ?></dd>
+        <dd><?php echo T_('This step creates and inserts the Ampache database, so please provide a MySQL account with database creation rights. This may take some time on slower computers.'); ?></dd>
     </dl>
     <ul class="list-unstyled">
         <li><?php echo T_('Step 2 - Create configuration files (ampache.cfg.php ...)'); ?></li>
         <li><?php echo T_('Step 3 - Set up the initial account'); ?></li>
     </ul>
 </div>
-<?php Error::display('general'); ?>
+<?php AmpError::display('general'); ?>
 <h2><?php echo T_('Insert Ampache Database'); ?></h2>
 <form role="form" class="form-horizontal" method="post" action="<?php echo $web_path . "/install.php?action=create_db&amp;htmllang=$htmllang&amp;charset=$charset"; ?>" enctype="multipart/form-data" autocomplete="off">
     <div class="form-group">
@@ -59,7 +58,7 @@ require $prefix . '/templates/install_header.inc.php';
         </div>
     </div>
     <div class="form-group">
-        <label for="local_port" class="col-sm-4 control-label"><?php echo T_('MySQL port (optional)'); ?></label>
+        <label for="local_port" class="col-sm-4 control-label"><?php echo T_('MySQL Port (optional)'); ?></label>
         <div class="col-sm-8">
             <input type="text" class="form-control" id="local_port" name="local_port"/>
        </div>
@@ -73,7 +72,7 @@ require $prefix . '/templates/install_header.inc.php';
     <div class="form-group">
         <label for="local_pass" class="col-sm-4 control-label"><?php echo T_('MySQL Administrative Password'); ?></label>
         <div class="col-sm-8">
-            <input type="password" class="form-control" id="local_pass" name="local_pass" placeholder="Password">
+            <input type="password" class="form-control" id="local_pass" name="local_pass" placeholder="<?php echo T_("Password"); ?>">
         </div>
     </div>
     <div class="form-group">
@@ -86,8 +85,11 @@ require $prefix . '/templates/install_header.inc.php';
             />
         </div>
     </div>
+    <div class="form-group">
+        <label for="mysql8" class="col-sm-4 control-label"><?php echo T_('MySQL 8 host?') . ' ' . '<a href="https://github.com/ampache/ampache/wiki/mysql-faq' . '" target="_blank">' . T_('Oracle MySQL FAQ') . '</a>'; ?></label>
+    </div>
     <div class="form-group" id="overwrite_db_div">
-        <label for="overwrite_db" class="col-sm-4 control-label"><?php echo T_('Overwrite if database already exists'); ?></label>
+        <label for="overwrite_db" class="col-sm-4 control-label"><?php echo T_('Overwrite if Database Already Exists'); ?></label>
         <div class="col-sm-8">
             <input
                 type="checkbox" value="1"
@@ -123,7 +125,7 @@ require $prefix . '/templates/install_header.inc.php';
     <div class="form-group" style="display: none;" id="specificpass">
         <label for="db_password" class="col-sm-4 control-label"><?php echo T_('Ampache Database User Password'); ?></label>
         <div class="col-sm-8">
-            <input type="password" class="form-control" id="db_password" name="db_password" placeholder="Password (Required)">
+            <input type="password" class="form-control" id="db_password" name="db_password" placeholder="<?php echo T_("Password") . '(' . T_("required") . ')'; ?>">
         </div>
     </div>
     <div class="col-sm-4">

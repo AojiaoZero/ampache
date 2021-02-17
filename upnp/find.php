@@ -1,8 +1,11 @@
 <?php
 
-error_reporting( E_ALL );
-ini_set('display_errors', 1);
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
 
+/**
+ * Class UPnPFind
+ */
 class UPnPFind
 {
     /**
@@ -66,7 +69,7 @@ class UPnPFind
      *
      * Thanks to artheus (https://github.com/artheus/PHP-UPnP/blob/master/phpupnp.class.php)
      *
-     * @param int $timeout Timeout to wait for responses
+     * @param integer $timeout Timeout to wait for responses
      *
      * @return array  Response
      */
@@ -87,13 +90,15 @@ class UPnPFind
 
         $response = array();
         do {
-            $buf = null;
-            @socket_recvfrom($socket, $buf, 1024, MSG_WAITALL, $from, $port);
+            $buf  = null;
+            $from = null;
+            $port = null;
+            socket_recvfrom($socket, $buf, 1024, MSG_WAITALL, $from, $port);
 
-            if (!is_null($buf)) {
+            if ($buf !== null) {
                 $response[] = self::discoveryReponse2Array($buf);
             }
-        } while (!is_null($buf));
+        } while ($buf !== null);
         //socket_close($socket);
 
         return $response;
@@ -103,13 +108,12 @@ class UPnPFind
      * Transforms discovery response string to key/value array
      *
      * @param string $res discovery response
-     *
-     * @return \stdObj
+     * @return stdObj
      */
     private static function discoveryReponse2Array($res)
     {
         $result = array();
-        $lines = explode("\n", trim($res));
+        $lines  = explode("\n", trim($res));
 
         if (trim($lines[0]) == 'HTTP/1.1 200 OK') {
             array_shift($lines);
@@ -118,20 +122,17 @@ class UPnPFind
         foreach ($lines as $line) {
             $tmp = explode(':', trim($line));
 
-            $key = strtoupper(array_shift($tmp));
+            $key   = strtoupper(array_shift($tmp));
             $value = (count($tmp) > 0 ? trim(join(':', $tmp)) : null);
 
             $result[$key] = $value;
         }
 
-        return (Object)$result;
+        return (Object) $result;
     }
 }
 
-
-$devices = UPnPFind::findDevices();
-
-?>
+$devices = UPnPFind::findDevices(); ?>
 
 <pre>
 <?php print_r($devices); ?>

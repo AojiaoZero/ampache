@@ -1,22 +1,23 @@
 <?php
+declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,35 +31,41 @@
 class Access
 {
     // Variables from DB
-
     /**
-     *  @var int $id
+     *  @var integer $id
      */
     public $id;
+
     /**
      *  @var string $name
      */
     public $name;
+
     /**
      *  @var string $start
      */
     public $start;
+
     /**
      *  @var string $end
      */
     public $end;
+
     /**
-     *  @var int $level
+     *  @var integer $level
      */
     public $level;
+
     /**
-     *  @var int $user
+     *  @var integer $user
      */
     public $user;
+
     /**
      *  @var string $type
      */
     public $type;
+
     /**
      *  @var boolean $enabled
      */
@@ -68,18 +75,22 @@ class Access
      *  @var string $f_start
      */
     public $f_start;
+
     /**
      *  @var string $f_end
      */
     public $f_end;
+
     /**
      *  @var string $f_user
      */
     public $f_user;
+
     /**
      *  @var string $f_level
      */
     public $f_level;
+
     /**
      *  @var string $f_type
      */
@@ -89,19 +100,15 @@ class Access
      * constructor
      *
      * Takes an ID of the access_id dealie :)
-     * @param int|null $access_id
+     * @param integer|null $access_id
      */
-    public function __construct($access_id = null)
+    public function __construct($access_id)
     {
-        if (!$access_id) {
-            return false;
-        }
-
         /* Assign id for use in get_info() */
-        $this->id = intval($access_id);
+        $this->id = (int) $access_id;
 
-        $info = $this->_get_info();
-        foreach ($info as $key=>$value) {
+        $info = $this->has_info();
+        foreach ($info as $key => $value) {
             $this->$key = $value;
         }
 
@@ -109,19 +116,17 @@ class Access
     }
 
     /**
-     * _get_info
+     * has_info
      *
      * Gets the vars for $this out of the database.
      * @return array
      */
-    private function _get_info()
+    private function has_info()
     {
-        $sql = 'SELECT * FROM `access_list` WHERE `id` = ?';
+        $sql        = 'SELECT * FROM `access_list` WHERE `id` = ?';
         $db_results = Dba::read($sql, array($this->id));
 
-        $results = Dba::fetch_assoc($db_results);
-
-        return $results;
+        return Dba::fetch_assoc($db_results);
     }
 
     /**
@@ -133,11 +138,11 @@ class Access
     public function format()
     {
         $this->f_start = inet_ntop($this->start);
-        $this->f_end = inet_ntop($this->end);
+        $this->f_end   = inet_ntop($this->end);
 
-        $this->f_user = $this->get_user_name();
+        $this->f_user  = $this->get_user_name();
         $this->f_level = $this->get_level_name();
-        $this->f_type = $this->get_type_name();
+        $this->f_type  = $this->get_type_name();
     }
 
     /**
@@ -151,19 +156,21 @@ class Access
     private static function _verify_range($startp, $endp)
     {
         $startn = @inet_pton($startp);
-        $endn = @inet_pton($endp);
+        $endn   = @inet_pton($endp);
 
         if (!$startn && $startp != '0.0.0.0' && $startp != '::') {
-            Error::add('start', T_('Invalid IPv4 / IPv6 Address Entered'));
+            AmpError::add('start', T_('An Invalid IPv4 / IPv6 Address was entered'));
+
             return false;
         }
         if (!$endn) {
-            Error::add('end', T_('Invalid IPv4 / IPv6 Address Entered'));
+            AmpError::add('end', T_('An Invalid IPv4 / IPv6 Address was entered'));
         }
 
         if (strlen(bin2hex($startn)) != strlen(bin2hex($endn))) {
-            Error::add('start', T_('IP Address Version Mismatch'));
-            Error::add('end', T_('IP Address Version Mismatch'));
+            AmpError::add('start', T_('IP Address version mismatch'));
+            AmpError::add('end', T_('IP Address version mismatch'));
+
             return false;
         }
 
@@ -184,18 +191,18 @@ class Access
             return false;
         }
 
-        $start = @inet_pton($data['start']);
-        $end = @inet_pton($data['end']);
-        $name = $data['name'];
-        $type = self::validate_type($data['type']);
-        $level = intval($data['level']);
-        $user = $data['user'] ?: '-1';
+        $start   = @inet_pton($data['start']);
+        $end     = @inet_pton($data['end']);
+        $name    = $data['name'];
+        $type    = self::validate_type($data['type']);
+        $level   = (int) $data['level'];
+        $user    = $data['user'] ?: '-1';
         $enabled = make_bool($data['enabled']) ? 1 : 0;
 
         $sql = 'UPDATE `access_list` SET `start` = ?, `end` = ?, `level` = ?, ' .
-            '`user` = ?, `name` = ?, `type` = ?, `enabled` = ? WHERE `id` = ?';
+                '`user` = ?, `name` = ?, `type` = ?, `enabled` = ? WHERE `id` = ?';
         Dba::write($sql,
-            array($start, $end, $level, $user, $name, $type, $enabled, $this->id));
+                array($start, $end, $level, $user, $name, $type, $enabled, $this->id));
 
         return true;
     }
@@ -216,21 +223,22 @@ class Access
 
         // Check existing ACLs to make sure we're not duplicating values here
         if (self::exists($data)) {
-            debug_event('ACL Create', 'Error: An ACL equal to the created one already exists. Not adding another one: ' . $data['start'] . ' - ' . $data['end'], 1);
-            Error::add('general', T_('Duplicate ACL defined'));
+            debug_event(self::class, 'Error: An ACL entry equal to the created one already exists. Not adding duplicate: ' . $data['start'] . ' - ' . $data['end'], 1);
+            AmpError::add('general', T_('Duplicate ACL entry defined'));
+
             return false;
         }
 
-        $start = @inet_pton($data['start']);
-        $end = @inet_pton($data['end']);
-        $name = $data['name'];
-        $user = $data['user'] ?: '-1';
-        $level = intval($data['level']);
-        $type = self::validate_type($data['type']);
+        $start   = @inet_pton($data['start']);
+        $end     = @inet_pton($data['end']);
+        $name    = $data['name'];
+        $user    = $data['user'] ?: '-1';
+        $level   = (int) $data['level'];
+        $type    = self::validate_type($data['type']);
         $enabled = make_bool($data['enabled']) ? 1 : 0;
 
         $sql = 'INSERT INTO `access_list` (`name`, `level`, `start`, `end`, ' .
-            '`user`,`type`,`enabled`) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                '`user`, `type`, `enabled`) VALUES (?, ?, ?, ?, ?, ?, ?)';
         Dba::write($sql, array($name, $level, $start, $end, $user, $type, $enabled));
 
         return true;
@@ -247,12 +255,12 @@ class Access
     public static function exists(array $data)
     {
         $start = inet_pton($data['start']);
-        $end = inet_pton($data['end']);
-        $type = self::validate_type($data['type']);
-        $user = $data['user'] ?: '-1';
+        $end   = inet_pton($data['end']);
+        $type  = self::validate_type($data['type']);
+        $user  = $data['user'] ?: '-1';
 
         $sql = 'SELECT * FROM `access_list` WHERE `start` = ? AND `end` = ? ' .
-            'AND `type` = ? AND `user` = ?';
+                'AND `type` = ? AND `user` = ?';
         $db_results = Dba::read($sql, array($start, $end, $type, $user));
 
         if (Dba::fetch_assoc($db_results)) {
@@ -266,11 +274,11 @@ class Access
      * delete
      *
      * deletes the specified access_list entry
-     * @param int $id
+     * @param integer $user_id
      */
-    public static function delete($id)
+    public static function delete($user_id)
     {
-        Dba::write('DELETE FROM `access_list` WHERE `id` = ?', array($id));
+        Dba::write('DELETE FROM `access_list` WHERE `id` = ?', array($user_id));
     }
 
     /**
@@ -287,13 +295,17 @@ class Access
                 return make_bool(AmpConfig::get('download'));
             case 'batch_download':
                 if (!function_exists('gzcompress')) {
-                    debug_event('access', 'ZLIB extension not loaded, batch download disabled', 3);
+                    debug_event(self::class, 'ZLIB extension not loaded, batch download disabled', 3);
+
                     return false;
                 }
-                if (AmpConfig::get('allow_zip_download') AND $GLOBALS['user']->has_access('5')) {
+                if (!Core::get_global('user')) {
+                    return false;
+                }
+                if (AmpConfig::get('allow_zip_download') && Core::get_global('user')->has_access('5')) {
                     return make_bool(AmpConfig::get('download'));
                 }
-            break;
+                break;
         }
 
         return false;
@@ -305,12 +317,11 @@ class Access
      * This takes a type, ip, user, level and key and then returns whether they
      * are allowed. The IP is passed as a dotted quad.
      * @param string $type
-     * @param int|string $user
-     * @param int $level
-     * @param string $ip
+     * @param integer|string $user
+     * @param integer $level
      * @return boolean
      */
-    public static function check_network($type, $user, $level, $ip=null)
+    public static function check_network($type, $user = null, $level = 25)
     {
         if (!AmpConfig::get('access_control')) {
             switch ($type) {
@@ -322,33 +333,32 @@ class Access
             }
         }
 
-        // Clean incoming variables
-        $ip = $ip ?: $_SERVER['REMOTE_ADDR'];
-        $ip = inet_pton($ip);
-
         switch ($type) {
             case 'init-api':
                 if ($user) {
                     $user = User::get_from_username($user);
                     $user = $user->id;
                 }
+                // Intentional break fall-through
             case 'api':
                 $type = 'rpc';
+                // Intentional break fall-through
             case 'network':
             case 'interface':
             case 'stream':
-            break;
+                break;
             default:
                 return false;
         } // end switch on type
 
         $sql = 'SELECT `id` FROM `access_list` ' .
-            'WHERE `start` <= ? AND `end` >= ? ' .
-            'AND `level` >= ? AND `type` = ?';
+                'WHERE `start` <= ? AND `end` >= ? ' .
+                'AND `level` >= ? AND `type` = ?';
 
-        $params = array($ip, $ip, $level, $type);
+        $user_ip = Core::get_user_ip();
+        $params  = array(inet_pton($user_ip), inet_pton($user_ip), $level, $type);
 
-        if (strlen($user) && $user != '-1') {
+        if (strlen((string) $user) && $user != '-1') {
             $sql .= " AND `user` IN(?, '-1')";
             $params[] = $user;
         } else {
@@ -358,27 +368,29 @@ class Access
         $db_results = Dba::read($sql, $params);
 
         if (Dba::fetch_row($db_results)) {
-            // Yah they have access they can use the mojo
+            debug_event(self::class, 'check_network ' . $type . ': ip matched ACL ' . $user_ip, 5);
+
             return true;
         }
+        debug_event(self::class, 'check_network ' . $type . ': ip not found in ACL ' . $user_ip, 3);
 
         return false;
     }
 
     /**
-     * check_access
+     * check
      *
-     * This is the global 'has_access' function.(t can check for any 'type'
+     * This is the global 'has_access' function. it can check for any 'type'
      * of object.
      *
      * Everything uses the global 0,5,25,50,75,100 stuff. GLOBALS['user'] is
      * always used.
      * @param string $type
-     * @param int $level
-     * @param int|null $user
+     * @param integer $level
+     * @param integer|null $user_id
      * @return boolean
      */
-    public static function check($type, $level, $user_id=null)
+    public static function check($type, $level, $user_id = null)
     {
         if (AmpConfig::get('demo_mode')) {
             return true;
@@ -387,18 +399,16 @@ class Access
             return true;
         }
 
-        $user = $GLOBALS['user'];
-        if ($user_id) {
+        $user = Core::get_global('user');
+        if ($user_id !== null) {
             $user = new User($user_id);
         }
-        $level = intval($level);
 
         // Switch on the type
         switch ($type) {
             case 'localplay':
                 // Check their localplay_level
-                return (AmpConfig::get('localplay_level') >= $level
-                    || $user->access >= 100);
+                return (AmpConfig::get('localplay_level') >= $level || $user->access >= 100);
             case 'interface':
                 // Check their standard user level
                 return ($user->access >= $level);
@@ -434,7 +444,7 @@ class Access
      */
     public static function get_access_lists()
     {
-        $sql = 'SELECT `id` FROM `access_list`';
+        $sql        = 'SELECT `id` FROM `access_list`';
         $db_results = Dba::read($sql);
 
         $results = array();
@@ -445,7 +455,6 @@ class Access
 
         return $results;
     }
-
 
     /**
      * get_level_name
@@ -467,6 +476,8 @@ class Access
         if ($this->level == '50') {
             return T_('Read/Write');
         }
+
+        return '';
     }
 
     /**
@@ -482,6 +493,7 @@ class Access
         }
 
         $user = new User($this->user);
+
         return $user->fullname . " (" . $user->username . ")";
     }
 
@@ -505,4 +517,4 @@ class Access
                 return T_('Stream Access');
         }
     }
-}
+} // end access.class

@@ -1,17 +1,18 @@
 <?php
-define('NO_SESSION','1');
-require_once '../lib/init.php';
+define('NO_SESSION', '1');
+$a_root = realpath(__DIR__ . "/../");
+require_once $a_root . '/lib/init.php';
 
 if (!AmpConfig::get('upnp_backend')) {
-    echo "Disabled.";
-    exit;
+    echo T_("Disabled");
+
+    return false;
 }
 
-header ("Content-Type:text/xml");
+header("Content-Type:text/xml");
 $web_path = AmpConfig::get('local_web_path');
 
-echo '<?xml version="1.0" encoding="UTF-8"?>';
-?>
+echo '<?xml version="1.0" encoding="UTF-8"?>'; ?>
 <root xmlns="urn:schemas-upnp-org:device-1-0">
     <specVersion>
         <major>1</major>
@@ -19,7 +20,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
     </specVersion>
     <device>
         <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>
-        <friendlyName><?php echo AmpConfig::get('site_title'); ?></friendlyName>
+        <friendlyName><?php echo scrub_out(AmpConfig::get('site_title')); ?></friendlyName>
         <manufacturer>ampache.org</manufacturer>
         <manufacturerURL>http://ampache.org</manufacturerURL>
         <modelDescription>A web based audio/video streaming application and file manager allowing you to access your music and videos from anywhere, using almost any Internet enabled device.</modelDescription>

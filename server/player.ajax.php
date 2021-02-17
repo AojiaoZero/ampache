@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,10 +25,13 @@
  * Sub-Ajax page, requires AJAX_INCLUDE
  */
 if (!defined('AJAX_INCLUDE')) {
-    exit;
+    return false;
 }
 
 $results = array();
+$action  = Core::get_request('action');
+
+// Switch on the actions
 switch ($_REQUEST['action']) {
     case 'show_broadcasts':
         ob_start();
@@ -36,34 +39,35 @@ switch ($_REQUEST['action']) {
         $results = ob_get_contents();
         ob_end_clean();
         echo $results;
-        exit;
+
+        return false;
     case 'broadcast':
-        $broadcast_id = $_GET['broadcast_id'];
+        $broadcast_id = Core::get_get('broadcast_id');
         if (empty($broadcast_id)) {
             $broadcast_id = Broadcast::create(T_('My Broadcast'));
         }
 
-        $broadcast = new Broadcast($broadcast_id);
+        $broadcast = new Broadcast((int) $broadcast_id);
         if ($broadcast->id) {
             $key  = Broadcast::generate_key();
             $broadcast->update_state(true, $key);
-            $results['broadcast'] = Broadcast::get_unbroadcast_link($broadcast_id) . '' .
-                '<script type="text/javascript">startBroadcast(\'' . $key . '\');</script>';
+            $results['broadcast'] = Broadcast::get_unbroadcast_link((int) $broadcast_id) . '' .
+                '<script>startBroadcast(\'' . $key . '\');</script>';
         }
-    break;
+        break;
     case 'unbroadcast':
-        $broadcast_id = $_GET['broadcast_id'];
-        $broadcast = new Broadcast($broadcast_id);
+        $broadcast_id = Core::get_get('broadcast_id');
+        $broadcast    = new Broadcast((int) $broadcast_id);
         if ($broadcast->id) {
             $broadcast->update_state(false);
             $results['broadcast'] = Broadcast::get_broadcast_link() . '' .
-                '<script type="text/javascript">stopBroadcast();</script>';
+                '<script>stopBroadcast();</script>';
         }
-    break;
+        break;
     default:
         $results['rfc3514'] = '0x1';
-    break;
+        break;
 } // switch on action;
 
 // We always do this
-echo xoutput_from_array($results);
+echo (string) xoutput_from_array($results);

@@ -1,13 +1,13 @@
 <?php
 /**
-   #####################################################################
-   #                               Warning                             #
-   #                               #######                             #
-   # This external file is Ampache-adapted and probably unsynced with  #
-   # origin because abandonned by its original authors.                #
-   #                                                                   #
-   #####################################################################
-   
+ *  #####################################################################
+ *  #                               Warning                             #
+ *  #                               #######                             #
+ *  # This external file is Ampache-adapted and probably unsynced with  #
+ *  # origin because abandonned by its original authors.                #
+ *  #                                                                   #
+ *  #####################################################################
+ *
  * This provides capability information for the current web client.
  *
  * Browser identification is performed by examining the HTTP_USER_AGENT
@@ -220,12 +220,12 @@ class Horde_Browser
      * @var array
      */
     protected $_features = array(
-        'frames'     => true,
-        'html'       => true,
-        'images'     => true,
-        'java'       => true,
+        'frames' => true,
+        'html' => true,
+        'images' => true,
+        'java' => true,
         'javascript' => true,
-        'tables'     => true
+        'tables' => true
     );
 
     /**
@@ -264,8 +264,8 @@ class Horde_Browser
     public function match($userAgent = null, $accept = null)
     {
         // Set our agent string.
-        if (is_null($userAgent)) {
-            if (isset($_SERVER['HTTP_USER_AGENT'])) {
+        if ($userAgent == null) {
+            if (filter_has_var(INPUT_SERVER, 'HTTP_USER_AGENT')) {
                 $this->_agent = trim($_SERVER['HTTP_USER_AGENT']);
             }
         } else {
@@ -274,8 +274,8 @@ class Horde_Browser
         $this->_lowerAgent = strtolower($this->_agent);
 
         // Set our accept string.
-        if (is_null($accept)) {
-            if (isset($_SERVER['HTTP_ACCEPT'])) {
+        if ($accept === null) {
+            if (filter_has_var(INPUT_SERVER, 'HTTP_ACCEPT')) {
                 $this->_accept = strtolower(trim($_SERVER['HTTP_ACCEPT']));
             }
         } else {
@@ -283,7 +283,7 @@ class Horde_Browser
         }
 
         // Check for UTF support.
-        if (isset($_SERVER['HTTP_ACCEPT_CHARSET'])) {
+        if (filter_has_var(INPUT_SERVER, 'HTTP_ACCEPT_CHARSET')) {
             $this->setFeature('utf', strpos(strtolower($_SERVER['HTTP_ACCEPT_CHARSET']), 'utf') !== false);
         }
 
@@ -294,7 +294,7 @@ class Horde_Browser
         $this->_setPlatform();
 
         // Use local scope for frequently accessed variables.
-        $agent = $this->_agent;
+        $agent      = $this->_agent;
         $lowerAgent = $this->_lowerAgent;
 
         if (strpos($lowerAgent, 'iemobile') !== false ||
@@ -534,7 +534,7 @@ class Horde_Browser
                 // numbers until Version 3.
                 if (preg_match('|Version/([0-9.]+)|', $agent, $version_string)) {
                     list($this->_majorVersion, $this->_minorVersion) = explode('.', $version_string[1], 2);
-                    $this->_minorVersion = intval($this->_minorVersion);
+                    $this->_minorVersion                             = (int) ($this->_minorVersion);
                     $this->setFeature('ajax');
                     $this->setFeature('rte');
                 } elseif ($this->_majorVersion >= 412) {
@@ -791,7 +791,7 @@ class Horde_Browser
      */
     public function setMobile($mobile)
     {
-        $this->_mobile = (bool)$mobile;
+        $this->_mobile = (bool) $mobile;
     }
 
     /**
@@ -813,7 +813,7 @@ class Horde_Browser
      */
     public function setTablet($tablet)
     {
-        $this->_tablet = (bool)$tablet;
+        $this->_tablet = (bool) $tablet;
     }
 
     /**
@@ -837,7 +837,7 @@ class Horde_Browser
      */
     public function isRobot()
     {
-        if (is_null($this->_robotAgentRegexp)) {
+        if ($this->_robotAgentRegexp === null) {
             $regex = array();
             foreach ($this->_robotAgents as $r) {
                 $regex[] = preg_quote($r, '/');
@@ -901,7 +901,7 @@ class Horde_Browser
     /**
      * Sets unique behavior for the current browser.
      *
-     * @param string $quirk  The behavior to set. Quirks:
+     * @param string $quirk The behavior to set. Quirks:
      *   - avoid_popup_windows
      *   - break_disposition_header
      *   - break_disposition_filename
@@ -919,7 +919,7 @@ class Horde_Browser
      *   - scrollbar_in_way
      *   - scroll_tds
      *   - windowed_controls
-     * @param string $value  Special behavior parameter.
+     * @param boolean $value Special behavior parameter.
      */
     public function setQuirk($quirk, $value = true)
     {
@@ -951,15 +951,13 @@ class Horde_Browser
      */
     public function getQuirk($quirk)
     {
-        return isset($this->_quirks[$quirk])
-               ? $this->_quirks[$quirk]
-               : null;
+        return (isset($this->_quirks[$quirk])) ? $this->_quirks[$quirk] : null;
     }
 
     /**
      * Sets capabilities for the current browser.
      *
-     * @param string $feature  The capability to set. Features:
+     * @param string $feature The capability to set. Features:
      *   - accesskey
      *   - ajax
      *   - cite
@@ -982,7 +980,7 @@ class Horde_Browser
      *   - utf
      *   - wml
      *   - xmlhttpreq
-     * @param string $value    Special capability parameter.
+     * @param boolean $value Special capability parameter.
      */
     public function setFeature($feature, $value = true)
     {
@@ -1014,9 +1012,7 @@ class Horde_Browser
      */
     public function getFeature($feature)
     {
-        return isset($this->_features[$feature])
-               ? $this->_features[$feature]
-               : null;
+        return (isset($this->_features[$feature])) ? $this->_features[$feature] : null;
     }
 
     /**
@@ -1026,8 +1022,8 @@ class Horde_Browser
      */
     public function usingSSLConnection()
     {
-        return ((isset($_SERVER['HTTPS']) &&
-                 ($_SERVER['HTTPS'] == 'on')) ||
+        return ((filter_has_var(INPUT_SERVER, 'HTTPS') &&
+                 (Core::get_server('HTTPS') == 'on')) ||
                 getenv('SSL_PROTOCOL_VERSION'));
     }
 
@@ -1038,21 +1034,17 @@ class Horde_Browser
      */
     public function getHTTPProtocol()
     {
-        return (isset($_SERVER['SERVER_PROTOCOL']) && ($pos = strrpos($_SERVER['SERVER_PROTOCOL'], '/')))
-            ? substr($_SERVER['SERVER_PROTOCOL'], $pos + 1)
-            : null;
+        return (filter_has_var(INPUT_SERVER, 'SERVER_PROTOCOL') && ($pos = strrpos($_SERVER['SERVER_PROTOCOL'], '/'))) ? substr($_SERVER['SERVER_PROTOCOL'], $pos + 1) : null;
     }
 
     /**
-     * Returns the IP address of the client.
+     * DEPRECIATED FUNCTION, will be removed
      *
      * @return string  The client IP address.
      */
     public function getIPAddress()
     {
-        return empty($_SERVER['HTTP_X_FORWARDED_FOR'])
-            ? $_SERVER['REMOTE_ADDR']
-            : $_SERVER['HTTP_X_FORWARDED_FOR'];
+        return Core::get_user_ip();
     }
 
     /**
@@ -1073,38 +1065,38 @@ class Horde_Browser
         $filesize = ini_get('upload_max_filesize');
         switch (strtolower(substr($filesize, -1, 1))) {
         case 'k':
-            $filesize = intval(floatval($filesize) * 1024);
+            $filesize = (int) (floatval($filesize) * 1024);
             break;
 
         case 'm':
-            $filesize = intval(floatval($filesize) * 1024 * 1024);
+            $filesize = (int) (floatval($filesize) * 1024 * 1024);
             break;
 
         case 'g':
-            $filesize = intval(floatval($filesize) * 1024 * 1024 * 1024);
+            $filesize = (int) (floatval($filesize) * 1024 * 1024 * 1024);
             break;
 
         default:
-            $filesize = intval($filesize);
+            $filesize = (int) ($filesize);
             break;
         }
 
         $postsize = ini_get('post_max_size');
         switch (strtolower(substr($postsize, -1, 1))) {
         case 'k':
-            $postsize = intval(floatval($postsize) * 1024);
+            $postsize = (int) (floatval($postsize) * 1024);
             break;
 
         case 'm':
-            $postsize = intval(floatval($postsize) * 1024 * 1024);
+            $postsize = (int) (floatval($postsize) * 1024 * 1024);
             break;
 
         case 'g':
-            $postsize = intval(floatval($postsize) * 1024 * 1024 * 1024);
+            $postsize = (int) (floatval($postsize) * 1024 * 1024 * 1024);
             break;
 
         default:
-            $postsize = intval($postsize);
+            $postsize = (int) ($postsize);
             break;
         }
 
@@ -1124,7 +1116,7 @@ class Horde_Browser
      */
     public function wasFileUploaded($field, $name = null)
     {
-        if (is_null($name)) {
+        if ($name === null) {
             $name = 'file';
         }
 
@@ -1138,17 +1130,17 @@ class Horde_Browser
         if ($index) {
             /* Index present, fetch the error var to check. */
             $keys_path = array_merge(array($base, 'error'), $keys);
-            $error = Horde_Array::getElement($_FILES, $keys_path);
+            $error     = Horde_Array::getElement($_FILES, $keys_path);
 
             /* Index present, fetch the tmp_name var to check. */
             $keys_path = array_merge(array($base, 'tmp_name'), $keys);
-            $tmp_name = Horde_Array::getElement($_FILES, $keys_path);
+            $tmp_name  = Horde_Array::getElement($_FILES, $keys_path);
         } else {
             /* No index, simple set up of vars to check. */
             if (!isset($_FILES[$field])) {
                 throw new Horde_Browser_Exception(Horde_Browser_Translation::t("No file uploaded"), UPLOAD_ERR_NO_FILE);
             }
-            $error = $_FILES[$field]['error'];
+            $error    = $_FILES[$field]['error'];
             $tmp_name = $_FILES[$field]['tmp_name'];
         }
 
@@ -1199,7 +1191,7 @@ class Horde_Browser
 
         /* Content-Type/Content-Disposition Header. */
         if ($inline) {
-            if (!is_null($cType)) {
+            if ($cType !== null) {
                 header('Content-Type: ' . trim($cType));
             } elseif ($this->isBrowser('msie')) {
                 header('Content-Type: application/x-msdownload');
@@ -1210,7 +1202,7 @@ class Horde_Browser
         } else {
             if ($this->isBrowser('msie')) {
                 header('Content-Type: application/x-msdownload');
-            } elseif (!is_null($cType)) {
+            } elseif ($cType !== null) {
                 header('Content-Type: ' . trim($cType));
             } else {
                 header('Content-Type: application/octet-stream');
@@ -1225,7 +1217,7 @@ class Horde_Browser
 
         /* Content-Length Header. Only send if we are not compressing
          * output. */
-        if (!is_null($cLength) &&
+        if ($cLength !== null &&
             !in_array('ob_gzhandler', ob_list_handlers())) {
             header('Content-Length: ' . $cLength);
         }
@@ -1247,7 +1239,7 @@ class Horde_Browser
      */
     public function isViewable($mimetype)
     {
-        $mimetype = strtolower($mimetype);
+        $mimetype             = strtolower($mimetype);
         list($type, $subtype) = explode('/', $mimetype);
 
         if (!empty($this->_accept)) {
@@ -1284,5 +1276,4 @@ class Horde_Browser
 
         return in_array($subtype, $this->_images);
     }
-
 }

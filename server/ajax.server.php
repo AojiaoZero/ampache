@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,71 +25,93 @@
  */
 
 // Set that this is an ajax include
-define('AJAX_INCLUDE','1');
-require_once '../lib/init.php';
+define('AJAX_INCLUDE', '1');
+$a_root = realpath(__DIR__ . "/../");
+require_once $a_root . '/lib/init.php';
 
 xoutput_headers();
 
 $page = isset($_REQUEST['page']) ? $_REQUEST['page'] : null;
-
-debug_event('ajax.server.php', 'Called for page: {'.$page.'}', '5');
+if ($page) {
+    debug_event('ajax.server', 'Called for page: {' . $page . '}', 5);
+}
 
 switch ($page) {
     case 'stats':
         require_once AmpConfig::get('prefix') . '/server/stats.ajax.php';
-        exit;
+
+        return false;
     case 'browse':
         require_once AmpConfig::get('prefix') . '/server/browse.ajax.php';
-        exit;
+
+        return false;
     case 'random':
         require_once AmpConfig::get('prefix') . '/server/random.ajax.php';
-        exit;
+
+        return false;
     case 'playlist':
         require_once AmpConfig::get('prefix') . '/server/playlist.ajax.php';
-        exit;
+
+        return false;
     case 'localplay':
         require_once AmpConfig::get('prefix') . '/server/localplay.ajax.php';
-        exit;
+
+        return false;
     case 'tag':
         require_once AmpConfig::get('prefix') . '/server/tag.ajax.php';
-        exit;
+
+        return false;
     case 'stream':
         require_once AmpConfig::get('prefix') . '/server/stream.ajax.php';
-        exit;
+
+        return false;
     case 'song':
         require_once AmpConfig::get('prefix') . '/server/song.ajax.php';
-        exit;
+
+        return false;
     case 'democratic':
         require_once AmpConfig::get('prefix') . '/server/democratic.ajax.php';
-        exit;
+
+        return false;
     case 'index':
         require_once AmpConfig::get('prefix') . '/server/index.ajax.php';
-        exit;
+
+        return false;
     case 'catalog':
         require_once AmpConfig::get('prefix') . '/server/catalog.ajax.php';
-        exit;
+
+        return false;
     case 'search':
         require_once AmpConfig::get('prefix') . '/server/search.ajax.php';
-        exit;
+
+        return false;
     case 'player':
         require_once AmpConfig::get('prefix') . '/server/player.ajax.php';
-        exit;
+
+        return false;
     case 'user':
         require_once AmpConfig::get('prefix') . '/server/user.ajax.php';
-        exit;
+
+        return false;
+    case 'podcast':
+        require_once AmpConfig::get('prefix') . '/server/podcast.ajax.php';
+
+        return false;
     default:
-        // A taste of compatibility
-    break;
+        break;
 } // end switch on page
 
-switch ($_REQUEST['action']) {
+$action = Core::get_request('action');
+
+// Switch on the actions
+switch ($action) {
     case 'refresh_rightbar':
         $results['rightbar'] = UI::ajax_include('rightbar.inc.php');
-    break;
+        break;
     case 'current_playlist':
         switch ($_REQUEST['type']) {
             case 'delete':
-                $GLOBALS['user']->playlist->delete_track($_REQUEST['id']);
+                Core::get_global('user')->playlist->delete_track($_REQUEST['id']);
             break;
         } // end switch
 
@@ -97,71 +119,71 @@ switch ($_REQUEST['action']) {
     break;
     // Handle the users basketcases...
     case 'basket':
-        $object_type = $_REQUEST['type'];
-        $object_id = $_REQUEST['id'];
+        $object_type = $_REQUEST['type'] ?: $_REQUEST['object_type'];
+        $object_id   = $_REQUEST['id'] ?: $_REQUEST['object_id'];
 
         if (Core::is_playable_item($object_type)) {
             if (!is_array($object_id)) {
                 $object_id = array($object_id);
             }
-            foreach ($object_id as $id) {
-                $item = new $object_type($id);
-                $medias = $item->get_medias();
-                $GLOBALS['user']->playlist->add_medias($medias);
+            foreach ($object_id as $item) {
+                $object = new $object_type($item);
+                $medias = $object->get_medias();
+                Core::get_global('user')->playlist->add_medias($medias);
             }
         } else {
             switch ($_REQUEST['type']) {
                 case 'browse_set':
-                    $browse = new Browse($_REQUEST['browse_id']);
+                    $browse  = new Browse($_REQUEST['browse_id']);
                     $objects = $browse->get_saved();
                     foreach ($objects as $object_id) {
-                        $GLOBALS['user']->playlist->add_object($object_id, 'song');
+                        Core::get_global('user')->playlist->add_object($object_id, 'song');
                     }
-                break;
+                    break;
                 case 'album_random':
-                    $data = explode('_',$_REQUEST['type']);
+                    $data = explode('_', $_REQUEST['type']);
                     $type = $data['0'];
                     foreach ($_REQUEST['id'] as $i) {
                         $object = new $type($i);
-                        $songs = $object->get_random_songs();
+                        $songs  = $object->get_random_songs();
                         foreach ($songs as $song_id) {
-                            $GLOBALS['user']->playlist->add_object($song_id, 'song');
+                            Core::get_global('user')->playlist->add_object($song_id, 'song');
                         }
                     }
-                break;
+                    break;
                 case 'artist_random':
                 case 'tag_random':
-                    $data = explode('_',$_REQUEST['type']);
-                    $type = $data['0'];
+                    $data   = explode('_', $_REQUEST['type']);
+                    $type   = $data['0'];
                     $object = new $type($_REQUEST['id']);
-                    $songs = $object->get_random_songs();
+                    $songs  = $object->get_random_songs();
                     foreach ($songs as $song_id) {
-                        $GLOBALS['user']->playlist->add_object($song_id,'song');
+                        Core::get_global('user')->playlist->add_object($song_id, 'song');
                     }
-                break;
+                    break;
                 case 'playlist_random':
                     $playlist = new Playlist($_REQUEST['id']);
-                    $items = $playlist->get_random_items();
+                    $items    = $playlist->get_random_items();
                     foreach ($items as $item) {
-                        $GLOBALS['user']->playlist->add_object($item['object_id'], $item['object_type']);
+                        Core::get_global('user')->playlist->add_object($item['object_id'], $item['object_type']);
                     }
-                break;
+                    break;
                 case 'clear_all':
-                    $GLOBALS['user']->playlist->clear();
-                break;
+                    Core::get_global('user')->playlist->clear();
+                    break;
             }
         }
 
         $results['rightbar'] = UI::ajax_include('rightbar.inc.php');
-    break;
+        break;
     /* Setting ratings */
     case 'set_rating':
         if (User::is_registered()) {
             ob_start();
-            $rating = new Rating($_GET['object_id'], $_GET['rating_type']);
-            $rating->set_rating($_GET['rating']);
-            Rating::show($_GET['object_id'], $_GET['rating_type']);
-            $key = "rating_" . $_GET['object_id'] . "_" . $_GET['rating_type'];
+            $rating = new Rating(filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT), Core::get_get('rating_type'));
+            $rating->set_rating(Core::get_get('rating'));
+            Rating::show(filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT), Core::get_get('rating_type'));
+            $key           = "rating_" . filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT) . "_" . Core::get_get('rating_type');
             $results[$key] = ob_get_contents();
             ob_end_clean();
         } else {
@@ -172,35 +194,36 @@ switch ($_REQUEST['action']) {
     case 'set_userflag':
         if (User::is_registered()) {
             ob_start();
-            $userflag = new Userflag($_GET['object_id'], $_GET['userflag_type']);
+            $flagtype = Core::get_get('userflag_type');
+            $userflag = new Userflag(filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT), $flagtype);
             $userflag->set_flag($_GET['userflag']);
-            Userflag::show($_GET['object_id'], $_GET['userflag_type']);
-            $key = "userflag_" . $_GET['object_id'] . "_" . $_GET['userflag_type'];
+            Userflag::show(filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT), $flagtype);
+            $key           = "userflag_" . Core::get_get('object_id') . "_" . $flagtype;
             $results[$key] = ob_get_contents();
             ob_end_clean();
         } else {
             $results['rfc3514'] = '0x1';
         }
-    break;
+        break;
     case 'action_buttons':
         ob_start();
         if (AmpConfig::get('ratings')) {
-            echo " <div id='rating_" . $_GET['object_id'] . "_" . $_GET['object_type'] . "'>";
-            Rating::show($_GET['object_id'], $_GET['object_type']);
+            echo " <div id='rating_" . filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT) . "_" . filter_input(INPUT_GET, 'object_type', FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES) . "'>";
+            Rating::show(filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT), filter_input(INPUT_GET, 'object_type', FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES));
             echo "</div> |";
         }
         if (AmpConfig::get('userflags')) {
-            echo " <div id='userflag_" . $_GET['object_id'] . "_" . $_GET['object_type'] . "'>";
-            Userflag::show($_GET['object_id'], $_GET['object_type']);
+            echo " <div id='userflag_" . filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT) . "_" . filter_input(INPUT_GET, 'object_type', FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES) . "'>";
+            Userflag::show(filter_input(INPUT_GET, 'object_id', FILTER_SANITIZE_NUMBER_INT), filter_input(INPUT_GET, 'object_type', FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES));
             echo "</div>";
         }
         $results['action_buttons'] = ob_get_contents();
         ob_end_clean();
-    break;
+        break;
     default:
         $results['rfc3514'] = '0x1';
-    break;
+        break;
 } // end switch action
 
 // Go ahead and do the echo
-echo xoutput_from_array($results);
+echo (string) xoutput_from_array($results);

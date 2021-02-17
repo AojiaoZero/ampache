@@ -1,40 +1,24 @@
 <?php
-if ($iframed || $is_share) {
-    ?>
-<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black-iframed.css');
-    ?>" type="text/css" />
+if ($iframed || $is_share) { ?>
+<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black-iframed.css') ?>" type="text/css" />
 <?php
-
-} else {
-    ?>
-<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black.css');
-    ?>" type="text/css" />
+} else { ?>
+<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black.css') ?>" type="text/css" />
 <?php
-
-}
+    }
 
 if (!$iframed) {
-    require_once AmpConfig::get('prefix') . UI::find_template('stylesheets.inc.php');
-    ?>
-<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jquery-editdialog.css');
-    ?>" type="text/css" media="screen" />
-<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path');
-    ?>/modules/jquery-ui-ampache/jquery-ui.min.css" type="text/css" media="screen" />
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/components/jquery/jquery.min.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/components/jquery-ui/jquery-ui.min.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/vendor/needim/noty/js/noty/packaged/jquery.noty.packaged.min.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/components/jquery-cookie/jquery.cookie.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/javascript/base.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/javascript/ajax.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path');
-    ?>/lib/javascript/tools.js" language="javascript" type="text/javascript"></script>
-<script type="text/javascript" charset="utf-8">
+    require_once AmpConfig::get('prefix') . UI::find_template('stylesheets.inc.php'); ?>
+<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jquery-editdialog.css'); ?>" type="text/css" media="screen" />
+<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path'); ?>/modules/jquery-ui-ampache/jquery-ui.min.css" type="text/css" media="screen" />
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/components/jquery/jquery.min.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/components/jquery-ui/jquery-ui.min.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/vendor/needim/noty/js/noty/packaged/jquery.noty.packaged.min.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/components/jquery-cookie/jquery.cookie.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/javascript/base.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/javascript/ajax.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/javascript/tools.js"></script>
+<script>
 var jsAjaxServer = "<?php echo AmpConfig::get('ajax_server') ?>";
 var jsAjaxUrl = "<?php echo AmpConfig::get('ajax_url') ?>";
 
@@ -44,21 +28,18 @@ function update_action()
 }
 </script>
 <?php
-
-}
-?>
-<link href="<?php echo AmpConfig::get('web_path'); ?>/modules/UberViz/style.css" rel="stylesheet" type="text/css">
-<?php if (AmpConfig::get('webplayer_aurora')) {
-    ?>
-    <script src="<?php echo AmpConfig::get('web_path');
-    ?>/modules/aurora.js/aurora.js" language="javascript" type="text/javascript"></script>
-<?php 
 } ?>
-<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/vendor/happyworm/jplayer/dist/jplayer/jquery.jplayer.min.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/vendor/happyworm/jplayer/dist/add-on/jplayer.playlist.min.js" language="javascript" type="text/javascript"></script>
-<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/javascript/jplayer.playlist.ext.js" language="javascript" type="text/javascript"></script>
+<link href="<?php echo AmpConfig::get('web_path'); ?>/modules/UberViz/style.css" rel="stylesheet" type="text/css">
+<?php if (AmpConfig::get('webplayer_aurora')) { ?>
+    <script src="<?php echo AmpConfig::get('web_path'); ?>/modules/aurora.js/aurora.js"></script>
+<?php
+} ?>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/vendor/happyworm/jplayer/dist/jplayer/jquery.jplayer.min.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/javascript/jplayer.ext.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/vendor/happyworm/jplayer/dist/add-on/jplayer.playlist.min.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/javascript/jplayer.playlist.ext.js"></script>
 
-<script language="javascript" type="text/javascript">
+<script>
 var jplaylist = new Array();
 var jtypes = new Array();
 
@@ -72,10 +53,13 @@ function convertMediaToJPMedia(media)
     jpmedia['artist_id'] = media['artist_id'];
     jpmedia['album_id'] = media['album_id'];
     jpmedia['media_id'] = media['media_id'];
+    jpmedia['media_type'] = media['media_type'];
     jpmedia['replaygain_track_gain'] = media['replaygain_track_gain'];
     jpmedia['replaygain_track_peak'] = media['replaygain_track_peak'];
     jpmedia['replaygain_album_gain'] = media['replaygain_album_gain'];
     jpmedia['replaygain_album_peak'] = media['replaygain_album_peak'];
+    jpmedia['r128_track_gain'] = media['r128_track_gain'];
+    jpmedia['r128_album_gain'] = media['r128_album_gain'];
 
     return jpmedia;
 }
@@ -92,7 +76,7 @@ function playNext(media)
     jplaylist.addAfter(jpmedia, jplaylist.current);
 }
 </script>
-<script language="javascript" type="text/javascript">
+<script>
 function ExitPlayer()
 {
     $("#webplayer").text('');
@@ -100,16 +84,36 @@ function ExitPlayer()
 
 <?php
 if (AmpConfig::get('song_page_title')) {
-    echo "window.parent.document.title = '" . addslashes(AmpConfig::get('site_title')) . "';";
-}
-?>
+        echo "window.parent.document.title = '" . addslashes(AmpConfig::get('site_title')) . "';";
+    } ?>
     document.onbeforeunload = null;
+}
+
+function TogglePlayerVisibility()
+{
+    if ($("#webplayer").is(":visible")) {
+        $("#webplayer").slideUp();
+    } else {
+        $("#webplayer").slideDown();
+    }
+}
+
+function TogglePlaylistExpand()
+{
+    if ($(".jp-playlist").css("opacity") !== '1') {
+        $(".jp-playlist").css('top', '-255%');
+        $(".jp-playlist").css('opacity', '1');
+        $(".jp-playlist").css('height', '350%');
+    } else {
+        $(".jp-playlist").css('top', '0px');
+        $(".jp-playlist").css('opacity', '0.9');
+        $(".jp-playlist").css('height', '95%');
+    }
 }
 </script>
 <?php
-if ($iframed) {
-    ?>
-<script type="text/javascript">
+if ($iframed) { ?>
+<script>
 function NotifyOfNewSong(title, artist, icon)
 {
     if (artist === null) {
@@ -137,8 +141,7 @@ function NotifyOfNewSong(title, artist, icon)
 
 function NotifyBrowser(title, artist, icon)
 {
-    var notyTimeout = <?php echo AmpConfig::get('browser_notify_timeout');
-    ?>;
+    var notyTimeout = <?php echo AmpConfig::get('browser_notify_timeout'); ?>;
     var notification = new Notification(title, {
         body: artist,
         icon: icon
@@ -208,11 +211,11 @@ function ShowVisualizer()
             vizPrevPlayerColor = $('#webplayer').css('background-color');
             $('#webplayer').css('cssText', 'background-color: #000 !important;');
             $('#webplayer').show();
+            $("#webplayer-minimize").show();
             $('.jp-interface').css('background-color', '#000');
             $('.jp-playlist').css('background-color', '#000');
         } else {
-            alert("<?php echo T_('Your browser doesn\'t support this feature.');
-    ?>");
+            alert("<?php echo T_("Your browser doesn't support this feature."); ?>");
         }
     }
 }
@@ -231,7 +234,7 @@ function ShowVisualizerFullScreen()
     } else if (element.mozRequestFullScreen) {
         element.mozRequestFullScreen();
     } else {
-        alert('Full-Screen not supported by your browser.');
+        alert('Full-Screen not supported by your browser');
     }
 }
 
@@ -248,21 +251,24 @@ function ShowEqualizer()
 
 function SavePlaylist()
 {
-    var url = "<?php echo AmpConfig::get('ajax_url');
-    ?>?page=playlist&action=append_item&item_type=song&item_id=";
-    for (var i = 0; i < jplaylist['playlist'].length; i++) {
-        url += "," + jplaylist['playlist'][i]["media_id"];
+    if (jplaylist['playlist'].length > 0) {
+        var url = "<?php echo AmpConfig::get('ajax_url') ?>?page=playlist&action=append_item&item_type=" + jplaylist['playlist'][0]["media_type"] + "&item_id=";
+        for (var i = 0; i < jplaylist['playlist'].length; i++) {
+            url += "," + jplaylist['playlist'][i]["media_id"];
+        }
+        handlePlaylistAction(url, 'rb_append_dplaylist_new');
     }
-    handlePlaylistAction(url, 'rb_append_dplaylist_new');
 }
 
 function SaveToExistingPlaylist(event)
 {
-    var item_ids = "";
-    for (var i = 0; i < jplaylist['playlist'].length; i++) {
-        item_ids += "," + jplaylist['playlist'][i]["media_id"];
+    if (jplaylist['playlist'].length > 0) {
+        var item_ids = "";
+        for (var i = 0; i < jplaylist['playlist'].length; i++) {
+            item_ids += "," + jplaylist['playlist'][i]["media_id"];
+        }
+        showPlaylistDialog(event, jplaylist['playlist'][0]["media_type"], item_ids);
     }
-    showPlaylistDialog(event, 'song', item_ids);
 }
 
 var audioContext = null;
@@ -273,7 +279,7 @@ initAudioContext();
 
 function ToggleReplayGain()
 {
-    if (replaygainNode == null) {
+    if (replaygainNode === null) {
         var mediaElement = $('.jp-jplayer').find('audio').get(0);
         if (mediaElement) {
             if (audioContext !== null) {
@@ -288,6 +294,7 @@ function ToggleReplayGain()
 
     if (replaygainNode != null) {
         replaygainEnabled = !replaygainEnabled;
+        document.cookie = 'replaygain=' + replaygainEnabled + ';samesite=lax';
         ApplyReplayGain();
 
         if (replaygainEnabled) {
@@ -305,17 +312,27 @@ function ApplyReplayGain()
         var replaygain = 0;
         var peakamplitude = 1;
         if (replaygainEnabled && currentjpitem != null) {
-            var track_gain = currentjpitem.attr("data-replaygain_track_gain");
-            if (track_gain !== 'null') {
-                replaygain = parseFloat(track_gain);
-            }
+            var replaygain_track_gain   = currentjpitem.attr("data-replaygain_track_gain");
+            var r128_track_gain = currentjpitem.attr("data-r128_track_gain"); 
 
-            if (replaygain !== 0) {
-                var track_peak = currentjpitem.attr("data-replaygain_track_peak");
-                if (track_peak !== 'null') {
-                    peakamplitude = parseFloat(track_peak);
+            if (r128_track_gain !== 'null') { // R128 PREFERRED
+                replaygain = parseInt(r128_track_gain / 256); // LU/dB away from baseline of -23 LUFS/dB, stored as Q7.8 (2 ^ 8) https://tools.ietf.org/html/rfc7845.html#page-25
+                var referenceLevel = parseInt(-23); // LUFS https://en.wikipedia.org/wiki/EBU_R_128#Specification
+                var targetLevel = parseInt(-18); // LUFS/dB;
+                var masteredVolume = referenceLevel - replaygain;
+                var difference = targetLevel - masteredVolume;
+
+                gainlevel = (Math.pow(10, ((difference /* + Gpre-amp */) / 20)));
+            } else if (replaygain_track_gain !== 'null') { // REPLAYGAIN FALLBACK
+                replaygain = parseFloat(replaygain_track_gain);
+
+                if (replaygain != null) {
+                    var track_peak = currentjpitem.attr("data-replaygain_track_peak");
+                    if (track_peak !== 'null') {
+                        peakamplitude = parseFloat(track_peak);
+                    }
+                    gainlevel = Math.min(Math.pow(10, ((replaygain /* + Gpre-amp */) / 20)), (1 / peakamplitude));
                 }
-                gainlevel = (1 + Math.min(Math.pow(10, ((replaygain /* + Gpre-amp */) / 20)), (1 / peakamplitude)));
             }
         }
 
@@ -323,11 +340,10 @@ function ApplyReplayGain()
     }
 }
 </script>
-<?php 
+<?php
 } ?>
-<script type="text/javascript">
-<?php if (AmpConfig::get('waveform') && !$is_share) {
-    ?>
+<script>
+<?php if (AmpConfig::get('waveform') && !$is_share) { ?>
 var wavclicktimer = null;
 var shouts = {};
 function WaveformClick(songid, time)
@@ -339,7 +355,7 @@ function WaveformClick(songid, time)
         NavigateTo('<?php echo AmpConfig::get('web_path') ?>/shout.php?action=show_add_shout&type=song&id=' + songid + '&offset=' + time);
     } else {
         // Single click
-        if (brconn == null) {
+        if (brconn === null) {
             wavclicktimer = setTimeout(function() {
                 wavclicktimer = null;
                 $("#jquery_jplayer_1").data("jPlayer").play(time);
@@ -367,8 +383,8 @@ function HideWaveform()
 {
     $('.waveform').css('visibility', 'hidden');
 }
-<?php 
-} ?>
+<?php
+    } ?>
 
 var brkey = '';
 var brconn = null;
@@ -439,8 +455,7 @@ function receiveBroadcastMessage(e)
                             jp.pause();
                         }
                     }
-                break;
-
+                    break;
                 case 'SONG':
                     addMedia($.parseJSON(atob(msg[1])));
                     brLoadingSong = true;
@@ -454,31 +469,26 @@ function receiveBroadcastMessage(e)
                         brLoadingSong = false;
                     }, 1000);
                     jplaylist.next();
-                break;
-
+                    break;
                 case 'SONG_POSITION':
                     if (brLoadingSong) {
                         brBufferingSongPos = parseFloat(msg[1]);
                     } else {
                         jp.play(parseFloat(msg[1]));
                     }
-                break;
-
+                    break;
                 case 'NB_LISTENERS':
                     $('#broadcast_listeners').html(msg[1]);
-                break;
-
+                    break;
                 case 'INFO':
                     // Display information notification to user here
-                break;
-
+                    break;
                 case 'ENDED':
                     jp.stop();
-                break;
-
+                    break;
                 default:
-                    alert('Unknown message code.');
-                break;
+                    alert('Unknown message code');
+                    break;
             }
         }
     }
@@ -501,14 +511,12 @@ function stopBroadcast()
     brconn = null;
 }
 
-<?php if ($iframed && AmpConfig::get('webplayer_confirmclose') && !$is_share) {
-    ?>
+<?php if ($iframed && AmpConfig::get('webplayer_confirmclose') && !$is_share) { ?>
 window.parent.onbeforeunload = function (evt) {
     if ($("#jquery_jplayer_1") !== undefined && $("#jquery_jplayer_1").data("jPlayer") !== undefined && !$("#jquery_jplayer_1").data("jPlayer").status.paused &&
             (document.activeElement === undefined || (document.activeElement.href.indexOf('/batch.php') < 0 && document.activeElement.href.indexOf('/stream.php') < 0))) {
-        var message = '<?php echo T_('Media is currently playing. Are you sure you want to close') . ' ' . AmpConfig::get('site_title') . '?';
-    ?>';
-        if (typeof evt == 'undefined') {
+        var message = '<?php echo T_('Media is currently playing, are you sure you want to close?') . ' ' . AmpConfig::get('site_title') . '?'; ?>';
+        if (typeof evt == "undefined") {
             evt = window.event;
         }
         if (evt) {
@@ -519,10 +527,9 @@ window.parent.onbeforeunload = function (evt) {
 
     return null;
 }
-<?php 
-} ?>
-<?php if ($iframed && AmpConfig::get('webplayer_confirmclose') && !$is_share) {
-    ?>
+<?php
+    } ?>
+<?php if ($iframed && AmpConfig::get('webplayer_confirmclose') && !$is_share) { ?>
 window.addEventListener('storage', function (event) {
   if (event.key == 'ampache-current-webplayer') {
     // The latest used webplayer is not this player, pause song if playing
@@ -533,6 +540,6 @@ window.addEventListener('storage', function (event) {
     }
   }
 });
-<?php 
-} ?>
+<?php
+    } ?>
 </script>

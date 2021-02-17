@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +24,7 @@ class AmpacheBitly
 {
     public $name        = 'Bit.ly';
     public $categories  = 'shortener';
-    public $description = 'Url shorteners on shared links with Bit.ly';
+    public $description = 'URL shorteners on shared links with Bit.ly';
     public $url         = 'http://bitly.com';
     public $version     = '000002';
     public $min_ampache = '360037';
@@ -41,6 +41,8 @@ class AmpacheBitly
      */
     public function __construct()
     {
+        $this->description = T_('URL shorteners on shared links with Bit.ly');
+
         return true;
     } // constructor
 
@@ -57,8 +59,8 @@ class AmpacheBitly
             return false;
         }
 
-        Preference::insert('bitly_username','Bit.ly username','','75','string','plugins');
-        Preference::insert('bitly_api_key','Bit.ly api key','','75','string','plugins');
+        Preference::insert('bitly_username', T_('Bit.ly Username'), '', 75, 'string', 'plugins', $this->name);
+        Preference::insert('bitly_api_key', T_('Bit.ly API key'), '', 75, 'string', 'plugins', $this->name);
 
         return true;
     } // install
@@ -83,52 +85,64 @@ class AmpacheBitly
         return true;
     } // upgrade
 
+    /**
+     * @param string $url
+     * @return string|false
+     */
     public function shortener($url)
     {
         if (empty($this->bitly_username) || empty($this->bitly_api_key)) {
-            debug_event($this->name, 'Bit.ly username or api key missing', '3');
+            debug_event('bitly.plugin', 'Bit.ly username or api key missing', 3);
+
             return false;
         }
-        
-        $shorturl = '';
-    
+
         $apiurl = 'http://api.bit.ly/v3/shorten?login=' . $this->bitly_username . '&apiKey=' . $this->bitly_api_key . '&longUrl=' . urlencode($url) . '&format=json';
         try {
-            debug_event($this->name, 'Bit.ly api call: ' . $apiurl, '5');
-            $request = Requests::get($apiurl, array(), Core::requests_options());
-            $shorturl = json_decode($request->body)->data->url;
-        } catch (Exception $e) {
-            debug_event($this->name, 'Bit.ly api http exception: ' . $e->getMessage(), '1');
+            debug_event('bitly.plugin', 'Bit.ly api call: ' . $apiurl, 5);
+            $request  = Requests::get($apiurl, array(), Core::requests_options());
+
+            return json_decode($request->body)->data->url;
+        } catch (Exception $error) {
+            debug_event('bitly.plugin', 'Bit.ly api http exception: ' . $error->getMessage(), 1);
+
             return false;
         }
-        
-        return $shorturl;
     }
-    
+
     /**
      * load
-     * This loads up the data we need into this object, this stuff comes 
+     * This loads up the data we need into this object, this stuff comes
      * from the preferences.
+     * @param User $user
+     * @return boolean
      */
     public function load($user)
     {
         $user->set_preferences();
         $data = $user->prefs;
+        // load system when nothing is given
+        if (!strlen(trim($data['bitly_username'])) || !strlen(trim($data['bitly_api_key']))) {
+            $data                   = array();
+            $data['bitly_username'] = Preference::get_by_user(-1, 'bitly_username');
+            $data['bitly_api_key']  = Preference::get_by_user(-1, 'bitly_api_key');
+        }
 
         if (strlen(trim($data['bitly_username']))) {
             $this->bitly_username = trim($data['bitly_username']);
         } else {
-            debug_event($this->name,'No Bit.ly username, shortener skipped','3');
+            debug_event('bitly.plugin', 'No Bit.ly username, shortener skipped', 3);
+
             return false;
         }
         if (strlen(trim($data['bitly_api_key']))) {
             $this->bitly_api_key = trim($data['bitly_api_key']);
         } else {
-            debug_event($this->name,'No Bit.ly api key, shortener skipped','3');
+            debug_event('bitly.plugin', 'No Bit.ly api key, shortener skipped', 3);
+
             return false;
         }
 
         return true;
     } // load
 } // end AmpacheBitly
-?>

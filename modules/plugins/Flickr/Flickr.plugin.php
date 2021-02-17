@@ -2,28 +2,28 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
 class Ampacheflickr
 {
     public $name        = 'Flickr';
-    public $categories  = 'misc,slideshow';
+    public $categories  = 'slideshow';
     public $description = 'Artist photos from Flickr';
     public $url         = 'http://www.flickr.com';
     public $version     = '000001';
@@ -31,13 +31,15 @@ class Ampacheflickr
     public $max_ampache = '999999';
 
     private $api_key;
-    
+
     /**
      * Constructor
      * This function does nothing...
      */
     public function __construct()
     {
+        $this->description = T_('Artist photos from Flickr');
+
         return true;
     } // constructor
 
@@ -51,7 +53,8 @@ class Ampacheflickr
         if (Preference::exists('flickr_api_key')) {
             return false;
         }
-        Preference::insert('flickr_api_key','Flickr api key','','75','string','plugins');
+        Preference::insert('flickr_api_key', T_('Flickr API key'), '', 75, 'string', 'plugins', $this->name);
+
         return true;
     } // install
 
@@ -63,6 +66,7 @@ class Ampacheflickr
     public function uninstall()
     {
         Preference::delete('flickr_api_key');
+
         return true;
     } // uninstall
 
@@ -75,11 +79,16 @@ class Ampacheflickr
         return true;
     } // upgrade
 
+    /**
+     * @param string $search
+     * @param string $category
+     * @return array
+     */
     public function get_photos($search, $category = 'concert')
     {
         $photos = array();
-        $url = "https://api.flickr.com/services/rest/?&method=flickr.photos.search&api_key=" . $this->api_key . "&per_page=20&content_type=1&text=" . rawurlencode(trim($search . " " . $category));
-        debug_event($this->name, 'Calling ' . $url, '5');
+        $url    = "https://api.flickr.com/services/rest/?&method=flickr.photos.search&api_key=" . $this->api_key . "&per_page=20&content_type=1&text=" . rawurlencode(trim($search . " " . $category));
+        debug_event('flickr.plugin', 'Calling ' . $url, 5);
         $request = Requests::get($url, array(), Core::requests_options());
         if ($request->status_code == 200) {
             $xml = simplexml_load_string($request->body);
@@ -92,17 +101,23 @@ class Ampacheflickr
                 }
             }
         }
-        
+
         return $photos;
     }
-    
+
+    /**
+     * @param $type
+     * @param array $options
+     * @param integer $limit
+     * @return array
+     */
     public function gather_arts($type, $options = array(), $limit = 5)
     {
         if (!$limit) {
             $limit = 5;
         }
-        
-        $images = $this->get_photos($options['keyword'], '');
+
+        $images  = $this->get_photos($options['keyword'], '');
         $results = array();
         foreach ($images as $image) {
             $title = $this->name;
@@ -114,32 +129,40 @@ class Ampacheflickr
                 'mime' => 'image/jpeg',
                 'title' => $title
             );
-            
+
             if ($limit && count($results) >= $limit) {
                 break;
             }
         }
-        
+
         return $results;
     }
-    
+
     /**
      * load
-     * This loads up the data we need into this object, this stuff comes 
+     * This loads up the data we need into this object, this stuff comes
      * from the preferences.
+     * @param User $user
+     * @return boolean
      */
     public function load($user)
     {
         $user->set_preferences();
         $data = $user->prefs;
-        
+        // load system when nothing is given
+        if (!strlen(trim($data['flickr_api_key']))) {
+            $data                   = array();
+            $data['flickr_api_key'] = Preference::get_by_user(-1, 'flickr_api_key');
+        }
+
         if (strlen(trim($data['flickr_api_key']))) {
             $this->api_key = trim($data['flickr_api_key']);
         } else {
-            debug_event($this->name,'No Flickr api key, photo plugin skipped','3');
+            debug_event('flickr.plugin', 'No Flickr api key, photo plugin skipped', 3);
+
             return false;
         }
+
         return true;
     } // load
 } // end Ampacheflickr
-?>

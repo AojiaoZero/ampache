@@ -2,44 +2,44 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-require_once 'lib/init.php';
+$a_root = realpath(__DIR__);
+require_once $a_root . '/lib/init.php';
 
 UI::show_header();
 
-// Switch on Action
+// Switch on the actions
 switch ($_REQUEST['action']) {
     case 'delete':
         if (AmpConfig::get('demo_mode')) {
             break;
         }
 
-        $song_id = scrub_in($_REQUEST['song_id']);
-        show_confirmation(
-            T_('Song Deletion'),
-            T_('Are you sure you want to permanently delete this song?'),
-            AmpConfig::get('web_path')."/song.php?action=confirm_delete&song_id=" . $song_id,
+        $song_id = (string) scrub_in($_REQUEST['song_id']);
+        show_confirmation(T_('Are You Sure?'),
+            T_('The Song will be deleted'),
+            AmpConfig::get('web_path') . "/song.php?action=confirm_delete&song_id=" . $song_id,
             1,
             'delete_song'
         );
-    break;
+        break;
     case 'confirm_delete':
         if (AmpConfig::get('demo_mode')) {
             break;
@@ -49,29 +49,37 @@ switch ($_REQUEST['action']) {
         if (!Catalog::can_remove($song)) {
             debug_event('song', 'Unauthorized to remove the song `.' . $song->id . '`.', 1);
             UI::access_denied();
-            exit;
+
+            return false;
         }
 
-        if ($song->remove_from_disk()) {
-            show_confirmation(T_('Song Deletion'), T_('Song has been deleted.'), AmpConfig::get('web_path'));
+        if ($song->remove()) {
+            show_confirmation(T_('No Problem'), T_('Song has been deleted'), AmpConfig::get('web_path'));
         } else {
-            show_confirmation(T_('Song Deletion'), T_('Cannot delete this song.'), AmpConfig::get('web_path'));
+            show_confirmation(T_("There Was a Problem"), T_("Couldn't delete this Song."), AmpConfig::get('web_path'));
         }
-    break;
+        break;
     case 'show_lyrics':
         $song = new Song($_REQUEST['song_id']);
         $song->format();
         $song->fill_ext_info();
         $lyrics = $song->get_lyrics();
         require_once AmpConfig::get('prefix') . UI::find_template('show_lyrics.inc.php');
-    break;
+        break;
     case 'show_song':
     default:
         $song = new Song($_REQUEST['song_id']);
         $song->format();
         $song->fill_ext_info();
-        require_once AmpConfig::get('prefix') . UI::find_template('show_song.inc.php');
-    break;
+        if (!$song->id) {
+            debug_event('song', 'Requested a song that does not exist', 2);
+            echo T_("You have requested a Song that does not exist.");
+        } else {
+            require_once AmpConfig::get('prefix') . UI::find_template('show_song.inc.php');
+        }
+        break;
 } // end data collection
 
+// Show the Footer
+UI::show_query_stats();
 UI::show_footer();

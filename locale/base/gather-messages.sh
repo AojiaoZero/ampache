@@ -2,7 +2,7 @@
 #
 # vim:set softtabstop=4 shiftwidth=4 expandtab:
 #
-# Copyright 2001 - 2015 Ampache.org
+# Copyright 2001 - 2020 Ampache.org
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License v2
@@ -31,18 +31,24 @@ potfile='messages.pot'
 tdstxt='translatable-database-strings.txt'
 ampconf='../../config/ampache.cfg.php'
 
+##############################################################
+
 usage() {
     echo ""
     echo -e "\033[32m usage: $0 [-h|--help][-g|--get][-gu|--getutds][-i|--init][-m|--merge][-f|--format][-a|--all][-au|--allutds]\033[0m"
     echo ""
-    echo -e "[-g|--get]\t Creates the messages.pot file from translation strings within the source code."
-    echo -e "[-gu|--getutds]\t Generates the Pot file from translation strings within the source code\n\t\t and creates or updates the 'translatable-database-strings.txt' from the database-preference-table strings.\n\t\t Ampache needs to be fully setup for this to work."
-    echo -e "[-i|--init]\t Creates a new language catalog and its directory structure."
-    echo -e "[-m|--merge]\t Merges the messages.pot into the language catalogs and shows obsolet translations."
-    echo -e "[-f|--format]\t Compiles the .mo file for its related .po file."
-    echo -e "[-a|--all]\t Does all except --init and --utds."
-    echo -e "[-au|--allutds]\t Does all except --init"
-    echo -e "[-h|--help]\t Shows this help screen."
+    echo -e "[-g|--get]\t\t Creates the messages.pot file from translation strings within the source code."
+    echo -e "[-gu|--getutds]\t\t Generates the Pot file from translation strings within the source code\n\t\t\t and creates or updates the 'translatable-database-strings.txt' from the database-preference-table strings.\n\t\t\t Ampache needs to be fully setup for this to work."
+    echo -e "[-i|--init]\t\t Creates a new language catalog and its directory structure."
+    echo -e "[-m|--merge]\t\t Merges the messages.pot into the language catalogs and shows obsolet translations."
+    echo -e "[-ma|--mergeall]\t Same as -m but for all translations."
+    echo -e "[-f|--format]\t\t Compiles the .mo file for its related .po file."
+    echo -e "[-fa|--formatall]\t Same as -f but for all translations."
+    echo -e "[-ro|--rmobsolete]\t Delete obsolete/orphaned entries from source-translation file and compiles it."
+    echo -e "[-roa|--rmobsoleteall]\t Same as -ro but for all translations."
+    echo -e "[-a|--all]\t\t Does all except --init and --utds."
+    echo -e "[-au|--allutds]\t\t Does all except --init"
+    echo -e "[-h|--help]\t\t Shows this help screen."
     echo ""
     echo -e "\033[32m If you encounter any bugs, please report them on Transifex (https://www.transifex.com/projects/p/ampache/)\033[0m"
     echo -e "\033[32m See also: https://github.com/ampache/ampache/blob/master/locale/base/TRANSLATIONS\033[0m"
@@ -50,13 +56,16 @@ usage() {
     exit 1
 }
 
+##############################################################
+
+# Generate/overwrite messages.pot file from Source-Strings
 generate_pot() {
     echo "Generating/updating pot-file"
     xgettext    --from-code=UTF-8 \
                 --add-comment=HINT: \
                 --msgid-bugs-address="https://www.transifex.com/projects/p/ampache/" \
                 -L php \
-                --keyword=gettext_noop --keyword=T_ --keyword=T_gettext --keyword=T_ngettext --keyword=ngettext \
+                --keyword=T_ --keyword=nT_:1,2 \
                 -o $potfile \
                 $(find ../../ -type f -name \*.php -o -name \*.inc | sort)
     if [[ $? -eq 0 ]]; then
@@ -68,6 +77,7 @@ generate_pot() {
     fi
 }
 
+# Generate/overwrite messages.pot file from Source- and Database-Strings
 generate_pot_utds() {
     echo ""
     echo "Generating/updating pot-file"
@@ -76,7 +86,7 @@ generate_pot_utds() {
                 --add-comment=HINT: \
                 --msgid-bugs-address="https://www.transifex.com/projects/p/ampache/" \
                 -L php \
-                --keyword=gettext_noop --keyword=T_ --keyword=T_gettext --keyword=T_ngettext --keyword=ngettext \
+                --keyword=T_ --keyword=nT_:1,2 \
                 -o $potfile \
                 $(find ../../ -type f -name \*.php -o -name \*.inc | sort)
     if [[ $? -eq 0 ]]; then
@@ -162,21 +172,46 @@ generate_pot_utds() {
                 "\n\n"\
                 "#######################################################################" >> $tdstxt
 
-        mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT id FROM preference" | 
+        mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT id FROM preference" |
         while read dbprefid; do
             dbprefdesc=$(mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT description FROM preference where id=$dbprefid")
             dbprefdescchk=$(grep "\"$dbprefdesc\"" $potfile)
-            if [ ! "$dbprefdescchk" ]; then
-                echo -e "\n#: Database preference table id $dbprefid" >> $tdstxt
-                echo -e "msgid \"$dbprefdesc\"" >> $tdstxt
-                echo -e "msgstr \"\"" >> $tdstxt
-            else
-                echo -e "\n#: Database preference table id $dbprefid" >> $tdstxt
-                echo -e "# is already in the source code\n# but to avoid confusion, it's added and commented" >> $tdstxt
-                echo -e "# msgid \"$dbprefdesc\"" >> $tdstxt
-                echo -e "# msgstr \"\"" >> $tdstxt
+            if [ ! -z "$dbprefdesc" ]; then
+                if [ ! "$dbprefdescchk" ]; then
+                    echo -e "\n#: Database preference table id $dbprefid" >> $tdstxt
+                    echo -e "msgid \"$dbprefdesc\"" >> $tdstxt
+                    echo -e "msgstr \"\"" >> $tdstxt
+                # else
+                    # echo -e "\n# Database preference table id $dbprefid" >> $tdstxt
+                    # echo -e "# is already in the source code\n# but to avoid confusion, it's added and commented" >> $tdstxt
+                    # echo -e "# msgid \"$dbprefdesc\"" >> $tdstxt
+                    # echo -e "# msgstr \"\"" >> $tdstxt
+                fi
             fi
         done
+
+        echo "Done for preference description"
+
+        mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT id FROM preference" |
+        while read dbprefid; do
+            dbprefdesc=$(mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT subcatagory FROM preference where id=$dbprefid AND subcatagory IS NOT NULL")
+            dbprefdescchk=$(grep "\"$dbprefdesc\"" $potfile $tdstxt)
+            if [ ! -z "$dbprefdesc" ]; then
+                if [ ! "$dbprefdescchk" ]; then
+                    echo -e "\n#: Database preference subcategory table id $dbprefid" >> $tdstxt
+                    echo -e "msgid \"$dbprefdesc\"" >> $tdstxt
+                    echo -e "msgstr \"\"" >> $tdstxt
+                # else
+                    # echo -e "\n# Database preference subcategory table id $dbprefid" >> $tdstxt
+                    # echo -e "# is already in the source code\n# but to avoid confusion, it's added and commented" >> $tdstxt
+                    # echo -e "# msgid \"$dbprefdesc\"" >> $tdstxt
+                    # echo -e "# msgstr \"\"" >> $tdstxt
+                fi
+            fi
+        done
+
+        echo "Done for subcategory"
+
         echo -e "\033[32m Pot file creation succeeded. Adding 'translatable-database-strings.txt\033[0m"
         cat $tdstxt >> $potfile
         echo -e "\n\033[32m Done, you are able now to use the messages.pot for further translation tasks.\033[0m"
@@ -185,6 +220,7 @@ generate_pot_utds() {
     fi
 }
 
+# Merge old and new gathered translations
 do_msgmerge() {
     source=$potfile
     target="../$1/LC_MESSAGES/messages.po"
@@ -193,12 +229,22 @@ do_msgmerge() {
     echo "Obsolete messages in $target: " $(grep '^#~' $target | wc -l)
 }
 
+# Compiling translation files (create the messages.mo files)
 do_msgfmt() {
     source="../$1/LC_MESSAGES/messages.po"
     target="../$1/LC_MESSAGES/messages.mo"
     echo "Creating $target from $source"
     msgfmt --verbose --check $source -o $target
 }
+
+# Kill obsolete translation strings from translation (.po) files and format/compile them
+rm_obsolete() {
+    source="../$1/LC_MESSAGES/messages.po"
+    echo "Delete obsolete Entries in $source"
+    msgattrib --no-obsolete $source -o $source
+}
+
+##############################################################
 
 if [[ $# -eq 0 ]]; then
     usage
@@ -209,6 +255,7 @@ case $1 in
         generate_pot
         for i in $(ls ../ | grep -v base); do
             do_msgmerge $i
+            rm_obsolete $i
             do_msgfmt $i
         done
     ;;
@@ -216,17 +263,8 @@ case $1 in
         generate_pot_utds
         for i in $(ls ../ | grep -v base); do
             do_msgmerge $i
+            rm_obsolete $i
             do_msgfmt $i
-        done
-    ;;
-    '-af'|'--allformat')
-        for i in $(ls ../ | grep -v base); do
-            do_msgfmt $i
-        done
-    ;;
-    '-am'|'--allmerge')
-        for i in $(ls ../ | grep -v base); do
-            do_msgmerge $i
         done
     ;;
     '-g'|'--get')
@@ -243,8 +281,28 @@ case $1 in
     '-f'|'--format'|'format')
         do_msgfmt $OLANG
     ;;
+    '-fa'|'--formatall')
+        for i in $(ls ../ | grep -v base); do
+            do_msgfmt $i
+        done
+    ;;
+    '-ro'|'--rmobsolete')
+            rm_obsolete $OLANG
+            do_msgfmt $OLANG
+    ;;
+    '-roa'|'--rmobsoleteall')
+        for i in $(ls ../ | grep -v base); do
+            rm_obsolete $i
+            do_msgfmt $i
+        done
+    ;;
     '-m'|'--merge'|'merge')
         do_msgmerge $OLANG
+    ;;
+    '-ma'|'--mergeall')
+        for i in $(ls ../ | grep -v base); do
+            do_msgmerge $i
+        done
     ;;
     '-h'|'--help'|'help'|'*')
         usage

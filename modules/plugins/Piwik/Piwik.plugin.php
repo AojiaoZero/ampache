@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,6 +41,8 @@ class AmpachePiwik
      */
     public function __construct()
     {
+        $this->description = T_('Piwik statistics');
+
         return true;
     }
 
@@ -56,8 +58,8 @@ class AmpachePiwik
             return false;
         }
 
-        Preference::insert('piwik_site_id','Piwik Site ID','1',100,'string','plugins');
-        Preference::insert('piwik_url','Piwik URL', AmpConfig::get('web_path') . '/piwik/',100,'string','plugins');
+        Preference::insert('piwik_site_id', T_('Piwik Site ID'), '1', 100, 'string', 'plugins', 'piwik');
+        Preference::insert('piwik_url', T_('Piwik URL'), AmpConfig::get('web_path') . '/piwik/', 100, 'string', 'plugins', $this->name);
 
         return true;
     }
@@ -90,26 +92,25 @@ class AmpachePiwik
      */
     public function display_on_footer()
     {
-        $currentUrl = scrub_out("http" . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+        $currentUrl = scrub_out("http" . (filter_has_var(INPUT_SERVER, 'HTTPS') ? 's' : '') . '://' . Core::get_server('HTTP_HOST') . Core::get_server('REQUEST_URI'));
 
         echo "<!-- Piwik -->\n";
-        echo "<script type='text/javascript'>\n";
+        echo "<script>\n";
         echo "var _paq = _paq || [];\n";
-        //echo "_paq.push(['trackPageView']);\n";   // Doesn't work when using Ajax page loading
-        echo "_paq.push(['trackLink', '" . $currentUrl ."', 'link']);\n";
+        echo "_paq.push(['trackLink', '" . $currentUrl . "', 'link']);\n";
         echo "_paq.push(['enableLinkTracking']);\n";
         echo "(function() {\n";
         echo "var u='" . scrub_out($this->piwik_url) . "';\n";
         echo "_paq.push(['setTrackerUrl', u+'piwik.php']);\n";
         echo "_paq.push(['setSiteId', " . scrub_out($this->site_id) . "]);\n";
-        if ($GLOBALS['user']->id > 0) {
-            echo "_paq.push(['setUserId', '" . $GLOBALS['user']->username . "']);\n";
+        if (Core::get_global('user')->id > 0) {
+            echo "_paq.push(['setUserId', '" . Core::get_global('user')->username . "']);\n";
         }
         echo "var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];\n";
-        echo "g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);\n";
+        echo "g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);\n";
         echo "})();\n";
         echo "</script>\n";
-        echo "<noscript><p><img src='" . scrub_out($this->piwik_url) . "piwik.php?idsite=" . scrub_out($this->site_id) . "' style='border:0;' alt='' /></p></noscript>\n";
+        echo "<noscript><p><img src='" . scrub_out($this->piwik_url) . "piwik.php?idsite=" . scrub_out($this->site_id) . "' style='border:0;' alt= '' /></p></noscript>\n";
         echo "<!-- End Piwik Code -->\n";
     }
 
@@ -117,21 +118,31 @@ class AmpachePiwik
      * load
      * This loads up the data we need into this object, this stuff comes
      * from the preferences.
+     * @param User $user
+     * @return boolean
      */
     public function load($user)
     {
         $user->set_preferences();
         $data = $user->prefs;
+        // load system when nothing is given
+        if (!strlen(trim($data['piwik_site_id'])) || !strlen(trim($data['piwik_url']))) {
+            $data                  = array();
+            $data['piwik_site_id'] = Preference::get_by_user(-1, 'piwik_site_id');
+            $data['piwik_url']     = Preference::get_by_user(-1, 'piwik_url');
+        }
 
         $this->site_id = trim($data['piwik_site_id']);
         if (!strlen($this->site_id)) {
-            debug_event($this->name,'No Piwik Site ID, user field plugin skipped','3');
+            debug_event('piwik.plugin', 'No Piwik Site ID, user field plugin skipped', 3);
+
             return false;
         }
 
         $this->piwik_url = trim($data['piwik_url']);
         if (!strlen($this->piwik_url)) {
-            debug_event($this->name,'No Piwik URL, user field plugin skipped','3');
+            debug_event('piwik.plugin', 'No Piwik URL, user field plugin skipped', 3);
+
             return false;
         }
 

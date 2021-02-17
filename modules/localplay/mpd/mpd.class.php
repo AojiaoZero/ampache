@@ -1,6 +1,7 @@
 <?php
+declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
-/*
+/**
  *  mpd.class.php - PHP Object Interface to the MPD Music Player Daemon
  *  Version 1.3
  *
@@ -20,8 +21,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Class mpd
  */
-
 class mpd
 {
     // Command names
@@ -108,6 +109,7 @@ class mpd
     const COMMAND_KILL     = 'kill';
     const COMMAND_PASSWORD = 'password';
     const COMMAND_PING     = 'ping';
+    const COMMAND_SHUTDOWN = 'shutdown';
 
     // Deprecated commands
     const COMMAND_VOLUME      = 'volume';
@@ -136,17 +138,17 @@ class mpd
 
     // Table holding version compatibility information
     private static $_COMPATIBILITY_TABLE = array(
-    self::COMMAND_CONSUME     => array('min' => '0.15.0', 'max' => false),
-    self::COMMAND_IDLE        => array('min' => '0.14.0', 'max' => false),
-    self::COMMAND_PASSWORD    => array('min' => '0.10.0', 'max' => false),
-    self::COMMAND_MOVETRACK   => array('min' => '0.9.1',  'max' => false),
-    self::COMMAND_PLSWAPTRACK => array('min' => '0.9.1',  'max' => false),
-    self::COMMAND_RANDOM      => array('min' => '0.9.1',  'max' => false),
-    self::COMMAND_SEEK        => array('min' => '0.9.1',  'max' => false),
-    self::COMMAND_SETVOL      => array('min' => '0.10.0', 'max' => false),
-    self::COMMAND_SINGLE      => array('min' => '0.15.0', 'max' => false),
-    self::COMMAND_STICKER     => array('min' => '0.15.0', 'max' => false),
-    self::COMMAND_VOLUME      => array('min' => false,    'max' => '0.10.0')
+    self::COMMAND_CONSUME => array('min' => '0.15.0', 'max' => false),
+    self::COMMAND_IDLE => array('min' => '0.14.0', 'max' => false),
+    self::COMMAND_PASSWORD => array('min' => '0.10.0', 'max' => false),
+    self::COMMAND_MOVETRACK => array('min' => '0.9.1', 'max' => false),
+    self::COMMAND_PLSWAPTRACK => array('min' => '0.9.1', 'max' => false),
+    self::COMMAND_RANDOM => array('min' => '0.9.1', 'max' => false),
+    self::COMMAND_SEEK => array('min' => '0.9.1', 'max' => false),
+    self::COMMAND_SETVOL => array('min' => '0.10.0', 'max' => false),
+    self::COMMAND_SINGLE => array('min' => '0.15.0', 'max' => false),
+    self::COMMAND_STICKER => array('min' => '0.15.0', 'max' => false),
+    self::COMMAND_VOLUME => array('min' => false, 'max' => '0.10.0')
     );
 
     // TCP/Connection variables
@@ -155,7 +157,7 @@ class mpd
     private $password;
 
     private $_mpd_sock = null;
-    public $connected = false;
+    public $connected  = false;
 
     // MPD Status variables
     public $mpd_version = "(unknown)";
@@ -171,17 +173,24 @@ class mpd
     private $_command_queue; // The list of commands for bulk command sending
 
     private $_debug_callback = null; // Optional callback to be run on debug
-    public $debugging = false;
+    public $debugging        = false;
 
-    /* Constructor
+    /**
+     * Constructor
      * Builds the MPD object, connects to the server, and refreshes all
      * local object properties.
+     * mpd constructor.
+     * @param $server
+     * @param $port
+     * @param $password
+     * @param $debug_callback
      */
     public function __construct($server, $port, $password = null, $debug_callback = null)
     {
-        $this->host = $server;
-        $this->port = $port;
+        $this->host     = $server;
+        $this->port     = $port;
         $this->password = $password;
+        debug_event(self::class, "Connecting to: " . $server . ":" . $port, 5);
 
         if (is_callable($debug_callback)) {
             $this->_debug_callback = $debug_callback;
@@ -189,19 +198,27 @@ class mpd
 
         $this->_debug('construct', 'constructor called', 5);
 
-        $response = $this->Connect();
-        if (!$response) {
-            $this->_error('Could not connect');
+        if (empty($this->host)) {
+            $this->_error('construct', 'Host is empty');
+
             return false;
         }
 
-        $version = sscanf($response, self::RESPONSE_OK . " MPD %s\n");
+        $response = $this->Connect();
+        if (!$response) {
+            $this->_error('construct', 'Could not connect');
+
+            return false;
+        }
+
+        $version           = sscanf($response, self::RESPONSE_OK . " MPD %s\n");
         $this->mpd_version = $version[0];
 
         if ($password) {
             if (!$this->SendCommand(self::COMMAND_PASSWORD, $password, false)) {
                 $this->connected = false;
                 $this->_error('construct', 'Password supplied is incorrect or Invalid Command');
+
                 return false;  // bad password or command
             }
         } // if password
@@ -214,6 +231,7 @@ class mpd
                 } else {
                     $this->_error('construct', 'Password required to access server');
                 }
+
                 return false;
             }
         }
@@ -221,17 +239,19 @@ class mpd
         return true;
     } // constructor
 
-    /* Connect
+    /**
+     * Connect
      *
      * Connects to the MPD server.
      *
      * NOTE: This is called automatically upon object instantiation; you
      * should not need to call this directly.
+     * @return false|string
      */
     public function Connect()
     {
-        $this->_debug('Connect', "host: " . $this->host . ", port: " . $this->port, 5);
-        $this->_mpd_sock = fsockopen($this->host, $this->port, $err, $err_str, 6);
+        $this->_debug(self::class, "host: " . $this->host . ", port: " . $this->port, 5);
+        $this->_mpd_sock = fsockopen($this->host, (int) $this->port, $err, $err_str, 6);
         // Vollmerize this bizatch
         /* Set the timeout on the connection */
         stream_set_timeout($this->_mpd_sock, 6);
@@ -239,51 +259,60 @@ class mpd
         /* We want blocking, cause otherwise it doesn't
          * timeout, and feof just keeps on spinning
          */
-        stream_set_blocking($this->_mpd_sock,true);
+        stream_set_blocking($this->_mpd_sock, true);
         $status = socket_get_status($this->_mpd_sock);
 
         if (!$this->_mpd_sock) {
             $this->_error('Connect', "Socket Error: $err_str ($err)");
+
             return false;
         } else {
             while (!feof($this->_mpd_sock) && !$status['timed_out']) {
-                $response =  fgets($this->_mpd_sock,1024);
+                $response = fgets($this->_mpd_sock, 1024);
                 if (function_exists('socket_get_status')) {
                     $status = socket_get_status($this->_mpd_sock);
                 }
                 if (strncmp(self::RESPONSE_OK, $response, strlen(self::RESPONSE_OK)) == 0) {
                     $this->connected = true;
+
                     return $response;
-                    break;
                 }
-                if (strncmp(self::RESPONSE_ERR,$response,strlen(self::RESPONSE_ERR)) == 0) {
+                if (strncmp(self::RESPONSE_ERR, $response, strlen(self::RESPONSE_ERR)) == 0) {
                     $this->_error('Connect', "Server responded with: $response");
+
                     return false;
                 }
             } // end while
             // Generic response
             $this->_error('Connect', "Connection not available");
+
             return false;
         }
     } // connect
 
-    /* SendCommand
+    /**
+     * SendCommand
      *
      * Sends a generic command to the MPD server. Several command constants
      * are pre-defined for use (see self::COMMAND_* constant definitions
      * above).
+     * @param $command
+     * @param $arguments
+     * @param boolean $refresh_info
+     * @return boolean|string
      */
     public function SendCommand($command, $arguments = null, $refresh_info = true)
     {
         $this->_debug('SendCommand', "cmd: $command, args: " . json_encode($arguments), 5);
-        if ( ! $this->connected ) {
+        if (! $this->connected) {
             $this->_error('SendCommand', 'Not connected', 1);
+
             return false;
         } else {
             $response_string = '';
 
             // Check the command compatibility:
-            if ( ! self::_checkCompatibility($command, $this->mpd_version) ) {
+            if (!$this->_checkCompatibility($command, $this->mpd_version)) {
                 return false;
             }
 
@@ -297,7 +326,7 @@ class mpd
                 }
             }
 
-            fputs($this->_mpd_sock,"$command\n");
+            fputs($this->_mpd_sock, "$command\n");
             while (!feof($this->_mpd_sock)) {
                 $response = fgets($this->_mpd_sock, 1024);
 
@@ -309,13 +338,14 @@ class mpd
                 // An ERR signals an error!
                 if (strncmp(self::RESPONSE_ERR, $response, strlen(self::RESPONSE_ERR)) == 0) {
                     $this->_error('SendCommand', "MPD Error: $response");
+
                     return false;
                 }
 
                 // Build the response string
                 $response_string .= $response;
             }
-            $this->_debug('SendCommand', "response: $response_string" , 5);
+            $this->_debug('SendCommand', "response: $response_string", 5);
         }
 
         if ($refresh_info) {
@@ -325,18 +355,23 @@ class mpd
         return $response_string ? $response_string : true;
     }
 
-    /* QueueCommand
+    /**
+     * QueueCommand
      *
      * Queues a generic command for later sending to the MPD server. The
      * CommandQueue can hold as many commands as needed, and are sent all
      * at once, in the order they were queued, using the SendCommandQueue
      * method. The syntax for queueing commands is identical to SendCommand.
+     * @param $command
+     * @param string $arguments
+     * @return boolean
      */
     public function QueueCommand($command, $arguments = '')
     {
         $this->_debug('QueueCommand', "start; cmd: $command args: " . json_encode($arguments), 5);
-        if ( ! $this->connected ) {
+        if (! $this->connected) {
             $this->_error('QueueCommand', 'Not connected');
+
             return false;
         }
 
@@ -357,18 +392,22 @@ class mpd
         $this->_command_queue .= $command . "\n";
 
         $this->_debug('QueueCommand', 'return', 5);
+
         return true;
     }
 
-    /* SendCommandQueue
+    /**
+     * SendCommandQueue
      *
      * Sends all commands in the Command Queue to the MPD server.
+     * @return boolean|string
      */
     public function SendCommandQueue()
     {
         $this->_debug('SendCommandQueue', 'start', 5);
-        if ( ! $this->connected ) {
+        if (! $this->connected) {
             _error('SendCommandQueue', 'Not connected');
+
             return false;
         }
 
@@ -380,17 +419,20 @@ class mpd
         }
 
         $this->_debug('SendCommandQueue', "response: $response", 5);
+
         return $response;
     }
 
-    /* RefreshInfo
+    /**
+     * RefreshInfo
      *
      * Updates all class properties with the values from the MPD server.
      * NOTE: This function is automatically called on Connect()
+     * @return boolean
      */
     public function RefreshInfo()
     {
-        $stats = $this->SendCommand(self::COMMAND_STATISTICS, null, false);
+        $stats  = $this->SendCommand(self::COMMAND_STATISTICS, null, false);
         $status = $this->SendCommand(self::COMMAND_STATUS, null, false);
 
 
@@ -398,49 +440,58 @@ class mpd
             return false;
         }
 
-        $stats = self::_parseResponse($stats);
+        $stats  = self::_parseResponse($stats);
         $status = self::_parseResponse($status);
 
-        $this->stats = $stats;
+        $this->stats  = $stats;
         $this->status = $status;
 
         // Get the Playlist
-        $playlist = $this->SendCommand(self::COMMAND_PLINFO, null, false);
+        $playlist       = $this->SendCommand(self::COMMAND_PLINFO, null, false);
         $this->playlist = self::_parseFileListResponse($playlist);
 
         return true;
     }
 
-    /* AdjustVolume
+    /**
+     * AdjustVolume
      *
      * Adjusts the mixer volume on the MPD by <value>, which can be a
      * positive (volume increase) or negative (volume decrease) value.
+     * @param $value
+     * @return boolean|string
      */
     public function AdjustVolume($value)
     {
         $this->_debug('AdjustVolume', 'start', 5);
-        if ( ! is_numeric($value) ) {
+        if (! is_numeric($value)) {
             $this->_error('AdjustVolume', "argument must be numeric: $value");
+
             return false;
         }
 
         $this->RefreshInfo();
-        $value = $this->status['volume'] + $value;
+        $value    = $this->status['volume'] + $value;
         $response = $this->SetVolume($value);
 
         $this->_debug('AdjustVolume', "return $response", 5);
+
         return $response;
     }
 
-    /* SetVolume
+    /**
+     * SetVolume
      *
      * Sets the mixer volume to <value>, which should be between 1 - 100.
+     * @param $value
+     * @return boolean|string
      */
     public function SetVolume($value)
     {
         $this->_debug('SetVolume', 'start', 5);
         if (!is_numeric($value)) {
             $this->_error('SetVolume', "argument must be numeric: $value");
+
             return false;
         }
 
@@ -450,195 +501,238 @@ class mpd
 
         // If we're not compatible with SETVOL, we'll try adjusting
         // using VOLUME
-        if (self::_checkCompatibility(self::COMMAND_SETVOL, $this->mpd_version)) {
+        if ($this->_checkCompatibility(self::COMMAND_SETVOL, $this->mpd_version)) {
             $command = self::COMMAND_SETVOL;
         } else {
             $this->RefreshInfo(); // Get the latest volume
-            if (is_null($this->status['volume'])) {
+            if ($this->status['volume'] === null) {
                 return false;
             } else {
                 $command = self::COMMAND_VOLUME;
-                $value = $value - $this->status['volume'];
+                $value   = $value - $this->status['volume'];
             }
         }
 
         $response = $this->SendCommand($command, $value);
 
         $this->_debug('SetVolume', "return: $response", 5);
+
         return $response;
     }
 
-    /* GetDir
+    /**
+     * GetDir
      *
      * Retrieves a database directory listing of the <dir> directory and
      * places the results into a multidimensional array. If no directory is
      * specified the directory listing is at the base of the MPD music path.
+     * @param string $dir
+     * @return array|boolean
      */
     public function GetDir($dir = '')
     {
         $this->_debug('GetDir', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_LSDIR, $dir, false);
-        $dirlist = self::_parseFileListResponse($response);
+        $dirlist  = self::_parseFileListResponse($response);
         $this->_debug('GetDir', 'return: ' . json_encode($dirlist), 5);
+
         return $dirlist;
     }
 
-    /* PLAdd
+    /**
+     * PLAdd
      *
      * Adds each track listed in a single-dimensional <trackArray>, which
      * contains filenames of tracks to add to the end of the playlist. This
      * is used to add many, many tracks to the playlist in one swoop.
+     * @param $trackArray
+     * @return boolean|string
      */
     public function PLAddBulk($trackArray)
     {
         $this->_debug('PLAddBulk', 'start', 5);
         $num_files = count($trackArray);
-        for ( $i = 0; $i < $num_files; $i++ ) {
-            $this->QueueCommand(self::COMMAND_ADD, $trackArray[$i]);
+        for ($count = 0; $count < $num_files; $count++) {
+            $this->QueueCommand(self::COMMAND_ADD, $trackArray[$count]);
         }
         $response = $this->SendCommandQueue();
         $this->_debug('PLAddBulk', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLAdd
+    /**
+     * PLAdd
      *
      * Adds the file <file> to the end of the playlist. <file> must be a
      * track in the MPD database.
+     * @param string $filename
+     * @return boolean|string
      */
     public function PLAdd($filename)
     {
         $this->_debug('PLAdd', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_ADD, $filename);
         $this->_debug('PLAdd', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLMoveTrack
+    /**PLMoveTrack
      *
      * Moves track number <current_position> to position <new_position> in
      * the playlist. This is used to reorder the songs in the playlist.
+     * @param $current_position
+     * @param $new_position
+     * @return boolean|string
      */
     public function PLMoveTrack($current_position, $new_position)
     {
         $this->_debug('PLMoveTrack', 'start', 5);
         if (!is_numeric($current_position)) {
             $this->_error('PLMoveTrack', "current_position must be numeric: $current_position");
+
             return false;
         }
         if ($current_position < 0 || $current_position > count($this->playlist)) {
             $this->_error('PLMoveTrack', "current_position out of range");
+
             return false;
         }
         $new_position = $new_position > 0 ? $new_position : 0;
-        $new_position = $new_position < count($this->playlist)
-            ? $new_position
-            : count($this->playlist);
+        $new_position = ($new_position < count($this->playlist)) ? $new_position : count($this->playlist);
 
         $response = $this->SendCommand(self::COMMAND_MOVETRACK, array($current_position, $new_position));
 
         $this->_debug('PLMoveTrack', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLShuffle
+    /**PLShuffle
      *
      * Randomly reorders the songs in the playlist.
+     * @return boolean|string
      */
     public function PLShuffle()
     {
         $this->_debug('PLShuffle', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_PLSHUFFLE);
         $this->_debug('PLShuffle', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLLoad
+    /**PLLoad
      *
      * Retrieves the playlist from <file>.m3u and loads it into the current
      * playlist.
+     * @param $file
+     * @return boolean|string
      */
     public function PLLoad($file)
     {
         $this->_debug('PLLoad', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_PLLOAD, $file);
         $this->_debug('PLLoad', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLSave
+    /**PLSave
      *
      * Saves the playlist to <file>.m3u for later retrieval. The file is
      * saved in the MPD playlist directory.
+     * @param $file
+     * @return boolean|string
      */
     public function PLSave($file)
     {
         $this->_debug('PLSave', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_PLSAVE, $file, false);
         $this->_debug('PLSave', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLClear
+    /**
+     * PLClear
      *
      * Empties the playlist.
+     * @return boolean|string
      */
     public function PLClear()
     {
         $this->_debug('PLClear', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_CLEAR);
         $this->_debug('PLClear', "return: $response", 5);
+
         return $response;
     }
 
-    /* PLRemove
+    /**
+     * PLRemove
      *
      * Removes track <id> from the playlist.
+     * @param $id
+     * @return boolean|string
      */
     public function PLRemove($id)
     {
-        if ( ! is_numeric($id) ) {
+        if (! is_numeric($id)) {
             $this->_error('PLRemove', "id must be numeric: $id");
+
             return false;
         }
         $response = $this->SendCommand(self::COMMAND_DELETE, $id);
         $this->_debug('PLRemove', "return: $response", 5);
+
         return $response;
     } // PLRemove
 
-    /* SetRepeat
+    /**
+     * SetRepeat
      *
      * Enables 'loop' mode -- tells MPD continually loop the playlist. The
      * <repVal> parameter is either 1 (on) or 0 (off).
+     * @param $value
+     * @return boolean|string
      */
     public function SetRepeat($value)
     {
         $this->_debug('SetRepeat', 'start', 5);
-        $value = $value ? 1 : 0;
+        $value    = $value ? 1 : 0;
         $response = $this->SendCommand(self::COMMAND_REPEAT, $value);
         $this->_debug('SetRepeat', "return: $response", 5);
+
         return $response;
     }
 
-    /* SetRandom
+    /**
+     * SetRandom
      *
      * Enables 'randomize' mode -- tells MPD to play songs in the playlist
      * in random order. The parameter is either 1 (on) or 0 (off).
+     * @param $value
+     * @return boolean|string
      */
     public function SetRandom($value)
     {
         $this->_debug('SetRandom', 'start', 5);
-        $value = $value ? 1 : 0;
+        $value    = $value ? 1 : 0;
         $response = $this->SendCommand(self::COMMAND_RANDOM, $value);
         $this->_debug('SetRandom', "return: $response", 5);
+
         return $response;
     }
 
-    /* Shutdown
+    /**
+     * Shutdown
      *
      * Shuts down the MPD server (aka sends the KILL command). This closes
      * the current connection and prevents future communication with the
      * server.
+     * @return boolean|string
      */
     public function Shutdown()
     {
@@ -651,145 +745,181 @@ class mpd
         unset($this->_mpd_sock);
 
         $this->_debug('Shutdown', "return: $response", 5);
+
         return $response;
     }
 
-    /* DBRefresh
+    /**
+     * DBRefresh
      *
      * Tells MPD to rescan the music directory for new tracks and refresh
      * the Database. Tracks cannot be played unless they are in the MPD
      * database.
+     * @return boolean|string
      */
     public function DBRefresh()
     {
         $this->_debug('DBRefresh', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_REFRESH);
         $this->_debug('DBRefresh', "return: $response", 5);
+
         return $response;
     }
 
-    /* Play
+    /**
+     * Play
      *
      * Begins playing the songs in the MPD playlist.
+     * @return boolean|string
      */
     public function Play()
     {
         $this->_debug('Play', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_PLAY);
         $this->_debug('Play', "return: $response", 5);
+
         return $response;
     }
 
-    /* Stop
+    /**
+     * Stop
      *
      * Stops playback.
+     * @return boolean|string
      */
     public function Stop()
     {
         $this->_debug('Stop', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_STOP);
         $this->_debug('Stop', "return: $response", 5);
+
         return $response;
     }
 
-    /* Pause
+    /**
+     * Pause
      *
      * Toggles pausing.
+     * @return boolean|string
      */
     public function Pause()
     {
         $this->_debug('Pause', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_PAUSE);
         $this->_debug('Pause', "return: $response", 5);
+
         return $response;
     }
 
-    /* SeekTo
+    /**
+     * SeekTo
      *
      * Skips directly to the <idx> song in the MPD playlist.
+     * @param $idx
+     * @return boolean
      */
     public function SkipTo($idx)
     {
         $this->_debug('SkipTo', 'start', 5);
-        if ( ! is_numeric($idx) ) {
+        if (! is_numeric($idx)) {
             $this->_error('SkipTo', "argument must be numeric: $idx");
+
             return false;
         }
         $response = $this->SendCommand(self::COMMAND_PLAY, $idx);
         $this->_debug('SkipTo', "return: $idx", 5);
+
         return $idx;
     }
 
-    /* SeekTo
+    /**
+     * SeekTo
      *
      * Skips directly to a given position within a track in the MPD
      * playlist. The <pos> argument, given in seconds, is the track position
      * to locate. The <track> argument, if supplied, is the track number in
      * the playlist. If <track> is not specified, the current track is
      * assumed.
+     * @param $pos
+     * @param integer $track
+     * @return boolean
      */
     public function SeekTo($pos, $track = -1)
     {
         $this->_debug('SeekTo', 'start', 5);
-        if ( ! is_numeric($pos) ) {
+        if (! is_numeric($pos)) {
             $this->_error('SeekTo', "pos must be numeric: $pos");
+
             return false;
         }
-        if ( ! is_numeric($track) ) {
+        if (! is_numeric($track)) {
             $this->_error('SeekTo', "track must be numeric: $track");
+
             return false;
         }
-        if ( $track == -1 ) {
+        if ($track == -1) {
             $track = $this->current_track_id;
         }
 
         $response = $this->SendCommand(self::COMMAND_SEEK, array($track, $pos));
         $this->_debug('SeekTo', "return: $pos", 5);
+
         return $pos;
     }
 
-    /* Next
+    /**
+     * Next
      *
      * Skips to the next song in the MPD playlist. If not playing, returns
      * an error.
+     * @return boolean|string
      */
     public function Next()
     {
         $this->_debug('Next', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_NEXT);
         $this->_debug('Next', "return: $response", 5);
+
         return $response;
     }
 
-    /* Previous
+    /**
+     * Previous
      *
      * Skips to the previous song in the MPD playlist. If not playing,
      * returns an error.
+     * @return boolean|string
      */
     public function Previous()
     {
         $this->_debug('Previous', 'start', 5);
         $response = $this->SendCommand(self::COMMAND_PREVIOUS);
         $this->_debug('Previous', "return: $response", 5);
+
         return $response;
     }
 
-    /* Search
+    /**
+     * Search
      *
      * Searches the MPD database. The search <type> should be one of the
      * following:
      *     self::SEARCH_ARTIST, self::SEARCH_TITLE, self::SEARCH_ALBUM
      * The search <string> is a case-insensitive locator string. Anything
      * that contains <string> will be returned in the results.
+     * @param string $type
+     * @param string $string
+     * @return array|boolean
      */
-    public function Search($type,$string)
+    public function Search($type, $string)
     {
         $this->_debug('Search', 'start', 5);
 
-        if ( $type != self::SEARCH_ARTIST &&
+        if ($type != self::SEARCH_ARTIST &&
             $type != self::SEARCH_ALBUM &&
-            $type != self::SEARCH_TITLE ) {
+            $type != self::SEARCH_TITLE) {
             $this->_error('Search', 'invalid search type');
+
             return false;
         }
 
@@ -801,24 +931,30 @@ class mpd
             $results = self::_parseFileListResponse($response);
         }
         $this->_debug('Search', 'return: ' . json_encode($results), 5);
+
         return $results;
     }
 
-    /* Find
+    /**
+     * Find
      *
      * Find looks for exact matches in the MPD database. The find <type>
      * should be one of the following:
      *    self::SEARCH_ARTIST, self::SEARCH_TITLE, self::SEARCH_ALBUM
      * The find <string> is a case-insensitive locator string. Anything that
      * exactly matches <string> will be returned in the results.
+     * @param string $type
+     * @param string $string
+     * @return array|boolean
      */
     public function Find($type, $string)
     {
         $this->_debug('Find', 'start', 5);
-        if ( $type != self::SEARCH_ARTIST &&
+        if ($type != self::SEARCH_ARTIST &&
             $type != self::SEARCH_ALBUM &&
-            $type != self::SEARCH_TITLE ) {
+            $type != self::SEARCH_TITLE) {
             $this->_error('Find', 'invalid find type');
+
             return false;
         }
 
@@ -831,10 +967,12 @@ class mpd
         }
 
         $this->_debug('Find', 'return: ' . json_encode($results), 5);
+
         return $results;
     }
 
-    /* Disconnect
+    /**
+     * Disconnect
      *
      * Closes the connection to the MPD server.
      */
@@ -849,9 +987,11 @@ class mpd
         unset($this->_mpd_sock);
     }
 
-    /* GetArtists
+    /**
+     * GetArtists
      *
      * Returns the list of artists in the database in an associative array.
+     * @return array|boolean
      */
     public function GetArtists()
     {
@@ -870,21 +1010,25 @@ class mpd
         }
 
         $this->_debug('GetArtists', 'return: ' . json_encode($results), 5);
+
         return $results;
     }
 
-    /* GetAlbums
+    /**
+     * GetAlbums
      *
      * Returns the list of albums in the database in an associative array.
      * Optional parameter is an artist Name which will list all albums by a
      * particular artist.
+     * @param $artist
+     * @return array|boolean
      */
     public function GetAlbums($artist = null)
     {
         $this->_debug('GetAlbums', 'start', 5);
 
         $params[] = self::TABLE_ALBUM;
-        if (!is_null($artist)) {
+        if ($artist === null) {
             $params[] = $artist;
         }
 
@@ -893,7 +1037,7 @@ class mpd
         }
 
         $results = array();
-        $parsed = self::_parseResponse($response);
+        $parsed  = self::_parseResponse($response);
 
         foreach ($parsed as $key => $value) {
             if ($key == 'Album') {
@@ -902,26 +1046,35 @@ class mpd
         }
 
         $this->_debug('GetAlbums', 'return: ' . json_encode($results), 5);
+
         return $results;
     }
 
-    /* _computeVersionValue
+    /**
+     * _computeVersionValue
      *
      * Computes numeric value from a version string
      *
+     * @param string $string
+     * @return float|integer|mixed
      */
     private static function _computeVersionValue($string)
     {
         $parts = explode('.', $string);
+
         return (100 * $parts[0]) + (10 * $parts[1]) + $parts[2];
     }
 
-    /* _checkCompatibility
+    /**
+     * _checkCompatibility
      *
      * Check MPD command compatibility against our internal table of
      * incompatibilities.
+     * @param $cmd
+     * @param $mpd_version
+     * @return boolean
      */
-    private static function _checkCompatibility($cmd, $mpd_version)
+    private function _checkCompatibility($cmd, $mpd_version)
     {
         $mpd = self::_computeVersionValue($mpd_version);
 
@@ -933,6 +1086,7 @@ class mpd
                 $min = self::_computeVersionValue($min_version);
                 if ($mpd < $min) {
                     $this->_error('compatibility', "Command '$cmd' is not compatible with this version of MPD, version $min_version required");
+
                     return false;
                 }
             }
@@ -942,6 +1096,7 @@ class mpd
 
                 if ($mpd >= $max) {
                     $this->_error('compatibility', "Command '$cmd' has been deprecated in this version of MPD.  Last compatible version: $max_version");
+
                     return false;
                 }
             }
@@ -950,19 +1105,22 @@ class mpd
         return true;
     }
 
-    /* _parseFileListResponse
+    /**
+     * _parseFileListResponse
      *
      * Builds a multidimensional array with MPD response lists.
+     * @param $response
+     * @return array|boolean
      */
     private static function _parseFileListResponse($response)
     {
-        if (!$response) {
+        if (is_bool($response)) {
             return false;
         }
 
         $results = array();
         $counter = -1;
-        $lines = explode("\n", $response);
+        $lines   = explode("\n", $response);
         foreach ($lines as $line) {
             if (preg_match('/(\w+): (.+)/', $line, $matches)) {
                 if ($matches[1] == 'file') {
@@ -975,8 +1133,11 @@ class mpd
         return $results;
     }
 
-    /* _parseResponse
+    /**
+     * _parseResponse
      * Turns a response into an array
+     * @param $response
+     * @return array|boolean
      */
     private static function _parseResponse($response)
     {
@@ -985,7 +1146,7 @@ class mpd
         }
 
         $results = array();
-        $lines = explode("\n", $response);
+        $lines   = explode("\n", $response);
         foreach ($lines as $line) {
             if (preg_match('/(\w+): (.+)/', $line, $matches)) {
                 $results[$matches[1]] = $matches[2];
@@ -995,19 +1156,27 @@ class mpd
         return $results;
     }
 
-    /* _error
+    /**
+     * _error
      *
      * Set error state
+     * @param string $source
+     * @param string $message
+     * @param integer $level
      */
-    private function _error($source, $message)
+    private function _error($source, $message, $level = 1)
     {
         $this->err_str = "$source: $message";
-        $this->_debug($source, $message, 1);
+        $this->_debug($source, $message, $level);
     }
 
-    /* _debug
+    /**
+     * _debug
      *
      * Do the debugging boogaloo
+     * @param $source
+     * @param $message
+     * @param $level
      */
     private function _debug($source, $message, $level)
     {
@@ -1015,10 +1184,8 @@ class mpd
             echo "$source / $message\n";
         }
 
-        if (!is_null($this->_debug_callback)) {
+        if ($this->_debug_callback === null) {
             call_user_func($this->_debug_callback, 'MPD', "$source / $message", $level);
         }
     }
 }   // end class mpd
-
-?>

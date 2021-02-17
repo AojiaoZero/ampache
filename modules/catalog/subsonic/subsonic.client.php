@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +29,15 @@ class SubsonicClient
     protected $_creds;
     protected $_commands;
 
-    public function __construct($username, $password, $serverUrl, $port="4040", $client="Ampache")
+    /**
+     * SubsonicClient constructor.
+     * @param string $username
+     * @param string $password
+     * @param string $serverUrl
+     * @param string $port
+     * @param string $client
+     */
+    public function __construct($username, $password, $serverUrl, $port = "4040", $client = "Ampache")
     {
         $this->setServer($serverUrl, $port);
 
@@ -49,6 +57,7 @@ class SubsonicClient
                 'getIndexes',
                 'getSong',
                 'getMusicDirectory',
+                'getArtistInfo',
                 'search',
                 'search2',
                 'getPlaylists',
@@ -77,23 +86,41 @@ class SubsonicClient
         );
     }
 
-    public function querySubsonic($action, $o=array(), $rawAnswer=false)
+    /**
+     * @param $action
+     * @param array $object
+     * @param boolean $rawAnswer
+     * @return array|boolean|object|string
+     */
+    public function querySubsonic($action, $object = array(), $rawAnswer = false)
     {
-        return $this->_querySubsonic($action, $o, $rawAnswer);
+        return $this->_querySubsonic($action, $object, $rawAnswer);
     }
-    
-    public function parameterize($url, $o = array())
+
+    /**
+     * @param $url
+     * @param array $object
+     * @return string
+     */
+    public function parameterize($url, $object = array())
     {
-        $params = array_merge($this->_creds, $o);
+        $params = array_merge($this->_creds, $object);
+
         return $url . http_build_query($params);
     }
 
-    protected function _querySubsonic($action, $o=array(), $rawAnswer=false)
+    /**
+     * @param $action
+     * @param array $object
+     * @param boolean $rawAnswer
+     * @return array|boolean|object|string
+     */
+    protected function _querySubsonic($action, $object = array(), $rawAnswer = false)
     {
         // Make sure the command is in the list of commands
         if ($this->isCommand($action)) {
-            $url = $this->parameterize($this->getServer() . "/rest/" . $action . ".view?", $o);
-            
+            $url = $this->parameterize($this->getServer() . "/rest/" . $action . ".view?", $object);
+
             $options = array(
                 CURLOPT_URL => $url,
                 CURLOPT_HEADER => 0,
@@ -101,23 +128,29 @@ class SubsonicClient
                 CURLOPT_CONNECTTIMEOUT => 8,
                 CURLOPT_SSL_VERIFYPEER => 0,
                 CURLOPT_FOLLOWLOCATION => 1,
-                CURLOPT_PORT => intval($this->_serverPort)
+                CURLOPT_PORT => (int) ($this->_serverPort)
             );
-            $ch = curl_init();
-            curl_setopt_array($ch, $options);
-            $answer = curl_exec($ch);
-            curl_close($ch);
-            if ($rawAnswer) {
-                return $answer;
-            } else {
-                return $this->parseResponse($answer);
+            $curl = curl_init();
+            if ($curl) {
+                curl_setopt_array($curl, $options);
+                $answer = curl_exec($curl);
+                curl_close($curl);
+                if ($rawAnswer) {
+                    return $answer;
+                } else {
+                    return $this->parseResponse($answer);
+                }
             }
         } else {
             return $this->error("Error: Invalid subsonic command: " . $action);
         }
     }
 
-    public function setServer($server, $port=null)
+    /**
+     * @param $server
+     * @param $port
+     */
+    public function setServer($server, $port = null)
     {
         $protocol = "";
         if (preg_match("/^https\:\/\//", $server)) {
@@ -125,7 +158,7 @@ class SubsonicClient
         }
         if (empty($protocol)) {
             if (!preg_match("/^http\:\/\//", $server)) {
-                $server = "http://". $server;
+                $server = "http://" . $server;
             }
             $protocol = "http://";
         }
@@ -133,7 +166,7 @@ class SubsonicClient
         if (count($matches)) {
             // If theres a port on the url, remove it and save it for later use.
             $server = str_replace($matches[0], "", $server);
-            $_port = str_replace(":", "", $matches[0]);
+            $_port  = str_replace(":", "", $matches[0]);
         }
         if ($port == null && isset($_port)) {
             // If port parameter not set but there was one on the url, use the one from the url.
@@ -143,43 +176,65 @@ class SubsonicClient
                 $port = ($protocol == "https") ? '443' : '80';
             }
         }
-        $this->_serverUrl = $server;
+        $this->_serverUrl  = $server;
         $this->_serverPort = $port;
     }
 
+    /**
+     * @return string
+     */
     public function getServer()
     {
         return $this->_serverUrl . ":" . $this->_serverPort;
     }
 
-    protected function error($error, $data=null)
+    /**
+     * @param $error
+     * @param $data
+     * @return object
+     */
+    protected function error($error, $data = null)
     {
-        error_log($error ."\n". print_r($data, true));
-        return (object) array("success"=>false, "error"=>$error, "data"=>$data);
+        error_log($error . "\n" . print_r($data, true));
+
+        return (object) array("success" => false, "error" => $error, "data" => $data);
     }
 
+    /**
+     * @param $response
+     * @return array|object
+     */
     protected function parseResponse($response)
     {
         $arr = json_decode($response, true);
         if ($arr['subsonic-response']) {
-            $response = (array)$arr['subsonic-response'];
-            $data = $response;
-            return array("success"=>($response['status'] == "ok"), "data"=>$data);
+            $response = (array) $arr['subsonic-response'];
+            $data     = $response;
+
+            return array("success" => ($response['status'] == "ok"), "data" => $data);
         } else {
-            return $this->error("Invalid response from server!", $object);
+            return $this->error("Invalid response from server!");
         }
     }
 
+    /**
+     * @param $command
+     * @return boolean
+     */
     public function isCommand($command)
     {
         return in_array($command, $this->_commands);
     }
 
+    /**
+     * @param $action
+     * @param $arguments
+     * @return array|boolean|object|string
+     */
     public function __call($action, $arguments)
     {
-        $o = count($arguments) ? (array) $arguments[0] : array();
-        return $this->_querySubsonic($action, $o);
+        $object = count($arguments) ? (array) $arguments[0] : array();
+
+        return $this->_querySubsonic($action, $object);
     }
 }
-
-?>

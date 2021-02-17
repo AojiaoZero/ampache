@@ -2,81 +2,50 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- */
-?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "DTD/xhtml1-transitional.dtd">
+ */ ?>
+<!DOCTYPE html>
 <html lang="en-US">
+
 <head>
-<!-- Propulsed by Ampache | ampache.org -->
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Ampache -- Config Debug Page</title>
-<link rel="stylesheet" href="templates/install.css" type="text/css" media="screen" />
-<style type="text/css">
-body {
-    text-align:left;
-}
-#content {
-    padding-left: 10px;
-}
-</style>
+  <!-- Propelled by Ampache | ampache.org -->
+  <?php UI::show_custom_style(); ?>
+  <title><?php echo T_('Ampache -- Config Debug Page') ?></title>
+  <link href="lib/components/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="lib/components/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="templates/install.css" type="text/css" media="screen" />
 </head>
-<body bgcolor="#f0f0f0">
-<div id="header">
-<h1><?php echo T_('Ampache Debug'); ?></h1>
-<p>Ampache.cfg.php error detected</p>
-</div>
-<div id="content">
-<h3 style="color:red;">Ampache.cfg.php Parse Error</h3>
-<p>You've been redirected to this page because your <strong>/config/ampache.cfg.php</strong> was not parsable.
-If you are upgrading from 3.3.x please see the directions below.</p>
-
-<h3>Migrating from 3.3.x to >= 3.4.x</h3>
-<p>Ampache 3.4 uses a different config parser that is over 10x faster then the previous version. Unfortunately the new parser is
-unable to read the old config files. From inside the Ampache root directory you must run <strong>php bin/migrate_config.inc</strong> from the command line to create your
-new config file.</p>
-
-<p>The following settings will not be migrated by the <strong>migrate_config.inc</strong> script due to major changes between versions. The default
-values from the ampache.cfg.php.dist file will be used.</p>
-
-<strong>auth_methods</strong> (<i>mysql</i>)<br />
-This defines which auth methods Auth will attempt to use and in which order, if auto_create isn't enabled.
-The user must exist locally as well<br />
-<br />
-<strong>tag_order</strong> (<i>id3v2,id3v1,vorbiscomment,quicktime,ape,asf</i>)<br />
-This determines the tag order for all cataloged music. If none of the listed tags are found then ampache will default to
-the first tag format that was found. <br />
-<br />
-<strong>album_art_order</strong> (<i>db,id3,folder,lastfm,amazon</i>)<br />
-Simply arrange the following in the order you would like ampache to search if you want to disable one of the search
-method simply comment it out valid values are<br />
-<br />
-<strong>amazon_base_urls</strong> (<i>http://webservices.amazon.com</i>)<br />
-An array of Amazon sites to search. NOTE: This will search each of these sites in turn so don't expect it
-to be lightning fast! It is strongly recommended that only one of these is selected at any<br />
-<br />
-<strong>downsample_cmd</strong><br />
-This variable no longer exists, all downsampling/transcoding is handled by the transcode_*  please see config file for details.
-<br />
-</div>
-<div id="bottom">
-<p><strong>Ampache Debug.</strong><br />
-For the love of Music.</p>
-</div>
+<body>
+        <div class="navbar navbar-inverse" role="navigation">
+            <div class="container" style="height: 70px;">
+                <a class="navbar-brand" href="#">
+                    <img src="./images/ampache-dark.png" title="<?php echo T_('Ampache'); ?>" alt="<?php echo T_('Ampache'); ?>">
+                    <?php echo T_('Ampache') . ' :: ' . T_('For the Love of Music'); ?>
+                </a>
+            </div>
+        </div>
+  <div class="container" role="main">
+    <div class="jumbotron" style="margin-top: 70px">
+      <h1><?php echo T_('Ampache Configuration Parse Error'); ?></h1>
+      <p><?php /* HINT: ampache config file path */ echo sprintf(T_('You may have reached this page because your %s configuration file was not parsable'), '<strong>/config/ampache.cfg.php</strong>'); ?></p>
+      <p><a href="https://github.com/ampache/ampache/wiki/FAQ#im-getting-ampache-configuration-parse-error" rel="nofollow"><?php echo T_('Please visit the wiki for help'); ?></a></p>
+    </div>
+  </div>
 </body>
+
 </html>

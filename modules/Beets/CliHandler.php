@@ -3,21 +3,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -108,6 +108,9 @@ class CliHandler extends Handler
         }
     }
 
+    /**
+     * @param $handle
+     */
     public function iterateItems($handle)
     {
         $item = '';
@@ -125,7 +128,7 @@ class CliHandler extends Handler
      * Assemble the command for CLI
      * @param string $command beets command (e.g. 'ls myArtist')
      * @param boolean $disableCostomFields disables the -f switch for this time
-     * @return type
+     * @return string
      */
     protected function assembleCommand($command, $disableCostomFields = false)
     {
@@ -137,6 +140,7 @@ class CliHandler extends Handler
         if ($this->useCustomFields && !$disableCostomFields) {
             $commandParts[] = ' -f ' . escapeshellarg($this->getFieldFormat());
         }
+
         return implode(' ', $commandParts);
     }
 
@@ -157,11 +161,12 @@ class CliHandler extends Handler
      */
     protected function parse($item)
     {
-        $item = str_replace($this->itemEnd, '', $item);
-        $values = explode($this->seperator, $item);
-        $song = array_combine($this->fields, $values);
-        $mappedSong = $this->mapFields($song);
+        $item               = str_replace($this->itemEnd, '', $item);
+        $values             = explode($this->seperator, $item);
+        $song               = array_combine($this->fields, $values);
+        $mappedSong         = $this->mapFields($song);
         $mappedSong['size'] = filesize($mappedSong['file']);
+
         return $mappedSong;
     }
 
@@ -172,9 +177,10 @@ class CliHandler extends Handler
     protected function getFieldFormat()
     {
         if (!isset($this->fieldFormat)) {
-            $this->fields = $this->getFields();
+            $this->fields      = $this->getFields();
             $this->fieldFormat = '$' . implode($this->seperator . '$', $this->fields) . $this->itemEnd;
         }
+
         return $this->fieldFormat;
     }
 
@@ -184,7 +190,7 @@ class CliHandler extends Handler
      */
     protected function getFields()
     {
-        $fields = null;
+        $fields          = null;
         $processedFields = array();
         exec($this->assembleCommand('fields', true), $fields);
         foreach ((array) $fields as $field) {
@@ -196,5 +202,4 @@ class CliHandler extends Handler
 
         return $processedFields;
     }
-
 }

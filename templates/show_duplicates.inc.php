@@ -2,27 +2,26 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- */
-?>
+ */ ?>
 <?php UI::show_box_top(T_('Duplicate Songs')); ?>
 <form method="post" enctype="multipart/form-data">
-    <table class="tabledata" cellpadding="0" cellspacing="0">
+    <table class="tabledata">
         <tr class="th-top">
             <th class="cel_disable"><?php echo T_('Disable'); ?></th>
             <th class="cel_song"><?php echo T_('Song'); ?></th>
@@ -41,39 +40,31 @@
                 foreach ($songs as $key => $song_id) {
                     $song = new Song($song_id);
                     $song->format();
-                    $row_key = 'duplicate_' . $song_id;
+                    $row_key              = 'duplicate_' . $song_id;
                     $button_flip_state_id = 'button_flip_state_' . $song_id;
-                    $current_class = ($key == '0') ? 'row-highlight' : UI::flip_class();
-                    $button = $song->enabled ? 'disable' : 'enable';
-                    ?>
-        <tr id="<?php echo $row_key;
-                    ?>" class="<?php echo $current_class;
-                    ?>">
-            <td class="cel_disable" id="<?php echo($button_flip_state_id);
-                    ?>">
-                <?php echo Ajax::button('?page=song&action=flip_state&song_id=' . $song_id,$button, T_(ucfirst($button)),'flip_state_' . $song_id);
-                    ?>
+                    $current_class        = ($key == '0') ? 'row-highlight' : UI::flip_class();
+                    if ($button) {
+                        $button     = 'disable';
+                        $buttontext = T_('Disable');
+                    } else {
+                        $button     = 'enable';
+                        $buttontext = T_('Enable');
+                    } ?>
+        <tr id="<?php echo $row_key; ?>" class="<?php echo $current_class; ?>">
+            <td class="cel_disable" id="<?php echo $button_flip_state_id; ?>">
+                <?php echo Ajax::button('?page=song&action=flip_state&song_id=' . $song_id, $button, $buttontext, 'flip_state_' . $song_id); ?>
             </td>
-            <td class="cel_song"><?php echo $song->f_link;
-                    ?></td>
-            <td class="cel_artist"><?php echo $song->f_artist_link;
-                    ?></td>
-            <td class="cel_album"><?php echo $song->f_album_link;
-                    ?></td>
-            <td class="cel_length"><?php echo $song->f_time;
-                    ?></td>
-            <td class="cel_bitrate"><?php echo $song->f_bitrate;
-                    ?></td>
-            <td class="cel_size"><?php echo $song->f_size;
-                    ?></td>
-            <td class="cel_filename"><?php echo scrub_out($song->file);
-                    ?></td>
+            <td class="cel_song"><?php echo $song->f_link; ?></td>
+            <td class="cel_artist"><?php echo $song->f_artist_link; ?></td>
+            <td class="cel_album"><?php echo $song->f_album_link; ?></td>
+            <td class="cel_length"><?php echo $song->f_time; ?></td>
+            <td class="cel_bitrate"><?php echo $song->f_bitrate; ?></td>
+            <td class="cel_size"><?php echo $song->f_size; ?></td>
+            <td class="cel_filename"><?php echo scrub_out($song->file); ?></td>
         </tr>
         <?php
-
                 }
-            }
-        ?>
+            } ?>
         <tr class="th-bottom">
             <th class="cel_disable"><?php echo T_('Disable'); ?></th>
             <th class="cel_song"><?php echo T_('Song'); ?></th>

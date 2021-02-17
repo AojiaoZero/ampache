@@ -1,8 +1,9 @@
 <?php
 // No event subscribe support but avoid few players error (e.g. Windows Media Player).
 
-define('NO_SESSION','1');
-require_once '../lib/init.php';
+define('NO_SESSION', '1');
+$a_root = realpath(__DIR__ . "/../");
+require_once $a_root . '/lib/init.php';
 
 $headers = getallheaders();
 //$callback = $headers['Callback'];
@@ -15,5 +16,5 @@ if (empty($timeout)) {
 header("SID: uuid:" . uniqid());
 header("TIMEOUT:" . $timeout);
 header("Connection: close");
-exit;
-?>
+
+return false;

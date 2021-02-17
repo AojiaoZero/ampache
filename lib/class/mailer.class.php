@@ -1,24 +1,27 @@
 <?php
+declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+
+use PHPMailer\PHPMailer\PHPMailer;
 
 /**
  * Mailer Class
@@ -47,9 +50,27 @@ class Mailer
     } // Constructor
 
     /**
+     * is_mail_enabled
+     *
+     * Check that the mail feature is enabled
+     * @return boolean
+     */
+    public static function is_mail_enabled()
+    {
+        if (AmpConfig::get('mail_enable') && !AmpConfig::get('demo_mode')) {
+            return true;
+        }
+
+        // by default you actually want people to set up mail first
+        return false;
+    }
+
+    /**
      * validate_address
      *
      * Checks whether what we have looks like a valid address.
+     * @param string $address
+     * @return boolean
      */
     public static function validate_address($address)
     {
@@ -79,40 +100,42 @@ class Mailer
             $fromname = 'Ampache';
         }
 
-        $this->sender = $user . '@' . $domain;
+        $this->sender      = $user . '@' . $domain;
         $this->sender_name = $fromname;
     } // set_default_sender
 
     /**
-      * get_users
+     * get_users
      * This returns an array of userids for people who have e-mail
      * addresses based on the passed filter
+     * @param $filter
+     * @return array
      */
     public static function get_users($filter)
     {
         switch ($filter) {
             case 'users':
                 $sql = "SELECT * FROM `user` WHERE `access`='25' AND `email` IS NOT NULL";
-            break;
+                break;
             case 'admins':
                 $sql = "SELECT * FROM `user` WHERE `access`='100' AND `email` IS NOT NULL";
-            break ;
+                break;
             case 'inactive':
                 $inactive = time() - (30 * 86400);
-                $sql = 'SELECT * FROM `user` WHERE `last_seen` <= ? AND `email` IS NOT NULL';
-            break;
+                $sql      = 'SELECT * FROM `user` WHERE `last_seen` <= ? AND `email` IS NOT NULL';
+                break;
             case 'all':
             default:
                 $sql = "SELECT * FROM `user` WHERE `email` IS NOT NULL";
-            break;
+                break;
         } // end filter switch
 
-        $db_results = Dba::read($sql, isset($inactive) ? array($inactive) : null);
+        $db_results = Dba::read($sql, isset($inactive) ? array($inactive) : array());
 
         $results = array();
 
         while ($row = Dba::fetch_assoc($db_results)) {
-            $results[] = array('id'=>$row['id'],'fullname'=>$row['fullname'],'email'=>$row['email']);
+            $results[] = array('id' => $row['id'], 'fullname' => $row['fullname'], 'email' => $row['email']);
         }
 
         return $results;
@@ -121,6 +144,9 @@ class Mailer
     /**
      * send
      * This actually sends the mail, how amazing
+     * @param PHPMailer $phpmailer
+     * @return boolean
+     * @throws \PHPMailer\PHPMailer\Exception
      */
     public function send($phpmailer = null)
     {
@@ -138,12 +164,12 @@ class Mailer
             $mail = $phpmailer;
         }
 
-        $mail->CharSet    = AmpConfig::get('site_charset');
+        $mail->CharSet     = AmpConfig::get('site_charset');
         $mail->Encoding    = 'base64';
-        $mail->From    = $this->sender;
-        $mail->Sender    = $this->sender;
+        $mail->From        = $this->sender;
+        $mail->Sender      = $this->sender;
         $mail->FromName    = $this->sender_name;
-        $mail->Subject    = $this->subject;
+        $mail->Subject     = $this->subject;
 
         if (function_exists('mb_eregi_replace')) {
             $this->message = mb_eregi_replace("\r\n", "\n", $this->message);
@@ -167,7 +193,7 @@ class Mailer
                 $mail->IsSMTP();
                 $mail->Host = $mailhost;
                 $mail->Port = $mailport;
-                if ($mailauth === true) {
+                if ($mailauth) {
                     $mail->SMTPAuth = true;
                     $mail->Username = $mailuser;
                     $mail->Password = $mailpass;
@@ -175,15 +201,15 @@ class Mailer
                 if ($mailsecure = AmpConfig::get('mail_secure_smtp')) {
                     $mail->SMTPSecure = ($mailsecure == 'ssl') ? 'ssl' : 'tls';
                 }
-            break;
+                break;
             case 'sendmail':
                 $mail->IsSendmail();
                 $mail->Sendmail = $sendmail;
-            break;
+                break;
             case 'php':
             default:
                 $mail->IsMail();
-            break;
+                break;
         }
 
         $retval = $mail->send();
@@ -194,6 +220,11 @@ class Mailer
         }
     } // send
 
+    /**
+     * @param $group_name
+     * @return boolean
+     * @throws \PHPMailer\PHPMailer\Exception
+     */
     public function send_to_group($group_name)
     {
         $mail = new PHPMailer();
@@ -207,5 +238,4 @@ class Mailer
 
         return $this->send($mail);
     }
-} // Mailer class
-
+} // end mailer.class

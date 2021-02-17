@@ -2,72 +2,73 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-require_once 'lib/init.php';
+$a_root = realpath(__DIR__);
+require_once $a_root . '/lib/init.php';
 
 /* Make sure they have access to this */
 if (!AmpConfig::get('allow_democratic_playback')) {
     UI::access_denied();
-    exit;
+
+    return false;
 }
 
 UI::show_header();
 
-// Switch on their action
+// Switch on the actions
 switch ($_REQUEST['action']) {
     case 'manage':
-                $democratic = Democratic::get_current_playlist();
-                $democratic->set_parent();
-                $democratic->format();
+        $democratic = Democratic::get_current_playlist();
+        $democratic->set_parent();
+        $democratic->format();
+        // Intentional break fall-through
     case 'show_create':
-        if (!Access::check('interface','75')) {
+        if (!Access::check('interface', 75)) {
             UI::access_denied();
             break;
         }
 
         // Show the create page
         require_once AmpConfig::get('prefix') . UI::find_template('show_create_democratic.inc.php');
-    break;
+        break;
     case 'delete':
-        if (!Access::check('interface','75')) {
+        if (!Access::check('interface', 75)) {
             UI::access_denied();
             break;
         }
 
         Democratic::delete($_REQUEST['democratic_id']);
 
-        $title = '';
-        $text = T_('The Requested Playlist has been deleted.');
-        $url = AmpConfig::get('web_path') . '/democratic.php?action=manage_playlists';
-        show_confirmation($title,$text,$url);
-    break;
+        show_confirmation(T_('No Problem'), T_('The Playlist has been deleted'), AmpConfig::get('web_path') . '/democratic.php?action=manage_playlists');
+        break;
     case 'create':
         // Only power users here
-        if (!Access::check('interface','75')) {
+        if (!Access::check('interface', 75)) {
             UI::access_denied();
             break;
         }
 
         if (!Core::form_verify('create_democratic')) {
             UI::access_denied();
-            exit;
+
+            return false;
         }
 
         $democratic = Democratic::get_current_playlist();
@@ -78,18 +79,23 @@ switch ($_REQUEST['action']) {
             Democratic::create($_POST);
             $democratic = Democratic::get_current_playlist();
         } else {
-            $democratic->update($_POST);
+            if (!$democratic->update($_POST)) {
+                show_confirmation(T_("There Was a Problem"),
+                    T_("Cooldown out of range."),
+                    AmpConfig::get('web_path') . "/democratic.php?action=manage");
+                break;
+            }
         }
 
         // Now check for additional things we might have to do
-        if ($_POST['force_democratic']) {
+        if (Core::get_post('force_democratic') !== '') {
             Democratic::set_user_preferences();
         }
 
         header("Location: " . AmpConfig::get('web_path') . "/democratic.php?action=show");
-    break;
+        break;
     case 'manage_playlists':
-        if (!Access::check('interface','75')) {
+        if (!Access::check('interface', 75)) {
             UI::access_denied();
             break;
         }
@@ -98,7 +104,7 @@ switch ($_REQUEST['action']) {
 
         require_once AmpConfig::get('prefix') . UI::find_template('show_manage_democratic.inc.php');
 
-    break;
+        break;
     case 'show_playlist':
     default:
         $democratic = Democratic::get_current_playlist();
@@ -119,7 +125,9 @@ switch ($_REQUEST['action']) {
         $browse->save_objects($objects);
         $browse->show_objects();
         $browse->store();
-    break;
+        break;
 } // end switch on action
 
+// Show the Footer
+UI::show_query_stats();
 UI::show_footer();

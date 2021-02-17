@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,24 +24,27 @@
  * Sub-Ajax page, requires AJAX_INCLUDE
  */
 if (!defined('AJAX_INCLUDE')) {
-    exit;
+    return false;
 }
 
 $results = array();
+$action  = Core::get_request('action');
+
+// Switch on the actions
 switch ($_REQUEST['action']) {
     case 'geolocation':
         if (AmpConfig::get('geolocation')) {
-            if ($GLOBALS['user']->id) {
-                $latitude = floatval($_REQUEST['latitude']);
-                $longitude = floatval($_REQUEST['longitude']);
-                $name = $_REQUEST['name'];
+            if (Core::get_global('user')->id) {
+                $latitude  = (float) $_REQUEST['latitude'];
+                $longitude = (float) $_REQUEST['longitude'];
+                $name      = $_REQUEST['name'];
                 if (empty($name)) {
                     // First try to get from local cache (avoid external api requests)
                     $name = Stats::get_cached_place_name($latitude, $longitude);
                     if (empty($name)) {
                         foreach (Plugin::get_plugins('get_location_name') as $plugin_name) {
                             $plugin = new Plugin($plugin_name);
-                            if ($plugin->load($GLOBALS['user'])) {
+                            if ($plugin->load(Core::get_global('user'))) {
                                 $name = $plugin->_plugin->get_location_name($latitude, $longitude);
                                 if (!empty($name)) {
                                     break;
@@ -58,13 +61,13 @@ switch ($_REQUEST['action']) {
                 }
             }
         } else {
-            debug_event('stats.ajax.php', 'Geolocation not enabled for the user.', 3);
+            debug_event('stats.ajax', 'Geolocation not enabled for the user.', 3);
         }
         break;
     default:
         $results['rfc3514'] = '0x1';
-    break;
+        break;
 } // switch on action;
 
 // We always do this
-echo xoutput_from_array($results);
+echo (string) xoutput_from_array($results);
