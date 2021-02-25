@@ -1,22 +1,23 @@
 <?php
+declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +32,7 @@ class Label extends database_object implements library_item
     /* Variables from DB */
 
     /**
-     *  @var int $id
+     *  @var integer $id
      */
     public $id;
     /**
@@ -59,7 +60,7 @@ class Label extends database_object implements library_item
      */
     public $summary;
     /**
-     *  @var int $user
+     *  @var integer $user
      */
     public $user;
 
@@ -76,86 +77,120 @@ class Label extends database_object implements library_item
      */
     public $f_link;
     /**
-     * @var int $artists
+     * @var integer $artists
      */
     public $artists;
 
     /**
      * __construct
+     * @param $label_id
      */
-    public function __construct($id=null)
+    public function __construct($label_id)
     {
-        if (!$id) { return false; }
+        $info = $this->get_info($label_id);
 
-        $info = $this->get_info($id);
-        foreach ($info as $key=>$value) {
+        foreach ($info as $key => $value) {
             $this->$key = $value;
         }
 
         return true;
     }
 
-    public function display_art($thumb)
+    /**
+     * display_art
+     * @param integer $thumb
+     * @param boolean $force
+     */
+    public function display_art($thumb, $force = false)
     {
-        if (Art::has_db($this->id, 'label')) {
+        if (Art::has_db($this->id, 'label') || $force) {
             Art::display('label', $this->id, $this->get_fullname(), $thumb, $this->link);
         }
     }
 
+    /**
+     * @param boolean $details
+     */
     public function format($details = true)
     {
+        unset($details);
         $this->f_name       = scrub_out($this->name);
         $this->link         = AmpConfig::get('web_path') . '/labels.php?action=show&label=' . scrub_out($this->id);
         $this->f_link       = "<a href=\"" . $this->link . "\" title=\"" . $this->f_name . "\">" . $this->f_name;
         $this->artists      = count($this->get_artists());
     }
 
+    /**
+     * @return array|integer[]
+     */
     public function get_catalogs()
     {
         return array();
     }
 
+    /**
+     * @return array
+     */
     public function get_childrens()
     {
-        $medias = array();
+        $medias  = array();
         $artists = $this->get_artists();
         foreach ($artists as $artist_id) {
             $medias[] = array(
                 'object_type' => 'artist',
-                'object_id' => $album_id
+                'object_id' => $artist_id
             );
         }
+
         return array('artist' => $medias);
     }
 
+    /**
+     * @return string
+     */
     public function get_default_art_kind()
     {
         return 'default';
     }
 
+    /**
+     * @return string
+     */
     public function get_description()
     {
         return $this->summary;
     }
 
+    /**
+     * @return string
+     */
     public function get_fullname()
     {
         return $this->f_name;
     }
 
+    /**
+     * get_keywords
+     * @return array
+     */
     public function get_keywords()
     {
-        $keywords = array();
+        $keywords          = array();
         $keywords['label'] = array('important' => true,
             'label' => T_('Label'),
             'value' => $this->f_name);
+
         return $keywords;
     }
 
+    /**
+     * @param string $filter_type
+     * @return array|mixed
+     */
     public function get_medias($filter_type = null)
     {
         $medias = array();
-        if (!$filter_type || $filter_type == 'song') {
+        if ($filter_type === null || $filter_type == 'song') {
             $songs = $this->get_songs();
             foreach ($songs as $song_id) {
                 $medias[] = array(
@@ -164,114 +199,171 @@ class Label extends database_object implements library_item
                 );
             }
         }
+
         return $medias;
     }
 
+    /**
+     * @return null
+     */
     public function get_parent()
     {
         return null;
     }
 
+    /**
+     * @return integer
+     */
     public function get_user_owner()
     {
         return $this->user;
     }
 
+    /**
+     * search_childrens
+     * @param string $name
+     * @return array
+     */
     public function search_childrens($name)
     {
-        $search['type'] = "artist";
-        $search['rule_0_input'] = $name;
+        $search                    = array();
+        $search['type']            = "artist";
+        $search['rule_0_input']    = $name;
         $search['rule_0_operator'] = 4;
-        $search['rule_0'] = "title";
-        $artists = Search::run($search);
+        $search['rule_0']          = "title";
+        $artists                   = Search::run($search);
 
         $childrens = array();
-        foreach ($artists as $artist) {
+        foreach ($artists as $artist_id) {
             $childrens[] = array(
                 'object_type' => 'artist',
-                'object_id' => $artist
+                'object_id' => $artist_id
             );
         }
+
         return $childrens;
     }
 
-    public function can_edit($user = null)
+    /**
+     * can_edit
+     * @param string $user_id
+     * @return boolean
+     */
+    public function can_edit($user_id = null)
     {
-        if (!$user) {
-            $user = $GLOBALS['user']->id;
+        if (!$user_id) {
+            $user_id = Core::get_global('user')->id;
         }
 
-        if (!$user)
+        if (!$user_id) {
             return false;
+        }
 
         if (AmpConfig::get('upload_allow_edit')) {
-            if ($this->user !== null && $user == $this->user)
+            if ($this->user !== null && $user_id == $this->user) {
                 return true;
+            }
         }
 
-        return Access::check('interface', 50, $user);
+        return Access::check('interface', 50, $user_id);
     }
 
+    /**
+     * update
+     * @param array $data
+     * @return integer
+     */
     public function update(array $data)
     {
         if (self::lookup($data, $this->id) !== 0) {
             return false;
         }
 
-        $name = isset($data['name']) ? $data['name'] : $this->name;
+        $name     = isset($data['name']) ? $data['name'] : $this->name;
         $category = isset($data['category']) ? $data['category'] : $this->category;
-        $summary = isset($data['summary']) ? $data['summary'] : $this->summary;
-        $address = isset($data['address']) ? $data['address'] : $this->address;
-        $email = isset($data['email']) ? $data['email'] : $this->email;
-        $website = isset($data['website']) ? $data['website'] : $this->website;
+        $summary  = isset($data['summary']) ? $data['summary'] : $this->summary;
+        $address  = isset($data['address']) ? $data['address'] : $this->address;
+        $email    = isset($data['email']) ? $data['email'] : $this->email;
+        $website  = isset($data['website']) ? $data['website'] : $this->website;
 
         $sql = "UPDATE `label` SET `name` = ?, `category` = ?, `summary` = ?, `address` = ?, `email` = ?, `website` = ? WHERE `id` = ?";
         Dba::write($sql, array($name, $category, $summary, $address, $email, $website, $this->id));
 
-        $this->name = $name;
+        $this->name     = $name;
         $this->category = $category;
-        $this->summary = $summary;
-        $this->address = $address;
-        $this->email = $email;
-        $this->website = $website;
+        $this->summary  = $summary;
+        $this->address  = $address;
+        $this->email    = $email;
+        $this->website  = $website;
 
         return $this->id;
     }
 
+    /**
+     * helper
+     * @param string $name
+     * @return string
+     */
+    public static function helper(string $name)
+    {
+        $label_data = array(
+            'name' => $name,
+            'category' => 'tag_generated',
+            'summary' => null,
+            'address' => null,
+            'email' => null,
+            'website' => null,
+            'user' => 0,
+            'creation_date' => time()
+        );
+
+        return self::create($label_data);
+    }
+
+    /**
+     * create
+     * @param array $data
+     * @return string
+     */
     public static function create(array $data)
     {
         if (self::lookup($data) !== 0) {
             return false;
         }
 
-        $name = $data['name'];
-        $category = $data['category'];
-        $summary = $data['summary'];
-        $address = $data['address'];
-        $email = $data['email'];
-        $website = $data['website'];
-        $user = $data['user'] ?: $GLOBALS['user']->id;
+        $name          = $data['name'];
+        $category      = $data['category'];
+        $summary       = $data['summary'];
+        $address       = $data['address'];
+        $email         = $data['email'];
+        $website       = $data['website'];
+        $user          = $data['user'] ?: Core::get_global('user')->id;
         $creation_date = $data['creation_date'] ?: time();
 
         $sql = "INSERT INTO `label` (`name`, `category`, `summary`, `address`, `email`, `website`, `user`, `creation_date`) " .
                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         Dba::write($sql, array($name, $category, $summary, $address, $email, $website, $user, $creation_date));
 
-        $id = Dba::insert_id();
-        return $id;
+        return Dba::insert_id();
     }
 
-    public static function lookup(array $data, $id = 0)
+    /**
+     * lookup
+     * @param array $data
+     * @param integer $label_id
+     * @return integer
+     */
+    public static function lookup(array $data, $label_id = 0)
     {
-        $ret = -1;
-        $name = trim($data['name']);
+        $ret  = -1;
+        $name = trim((string) $data['name']);
         if (!empty($name)) {
-            $ret = 0;
-            $sql = "SELECT `id` FROM `label` WHERE `name` = ?";
+            $ret    = 0;
+            $sql    = "SELECT `id` FROM `label` WHERE `name` = ?";
             $params = array($name);
-            if ($id > 0) {
+            if ($label_id > 0) {
                 $sql .= " AND `id` != ?";
-                $params[] = $id;
+                $params[] = $label_id;
             }
             $db_results = Dba::read($sql, $params);
             if ($row = Dba::fetch_assoc($db_results)) {
@@ -282,39 +374,59 @@ class Label extends database_object implements library_item
         return $ret;
     }
 
-    public static function gc()
+    /**
+     * garbage_collection
+     * @return mixed|void
+     */
+    public static function garbage_collection()
     {
         // Don't remove labels, it could still be used as description in a search
     }
 
+    /**
+     * get_artists
+     * @return integer[]
+     */
     public function get_artists()
     {
-        $sql = "SELECT `artist` FROM `label_asso` WHERE `label` = ?";
+        $sql        = "SELECT `artist` FROM `label_asso` WHERE `label` = ?";
         $db_results = Dba::read($sql, array($this->id));
-        $results = array();
+        $results    = array();
         while ($row = Dba::fetch_assoc($db_results)) {
-            $results[] = $row['artist'];
+            $results[] = (int) $row['artist'];
         }
 
         return $results;
     }
 
+    /**
+     * add_artist_assoc
+     * @param integer $artist_id
+     * @return PDOStatement|boolean
+     */
     public function add_artist_assoc($artist_id)
     {
         $sql = "INSERT INTO `label_asso` (`label`, `artist`, `creation_date`) VALUES (?, ?, ?)";
+
         return Dba::write($sql, array($this->id, $artist_id, time()));
     }
 
+    /**
+     * remove_artist_assoc
+     * @param integer $artist_id
+     * @return PDOStatement|boolean
+     */
     public function remove_artist_assoc($artist_id)
     {
         $sql = "DELETE FROM `label_asso` WHERE `label` = ? AND `artist` = ?";
+
         return Dba::write($sql, array($this->id, $artist_id));
     }
 
     /**
      * get_songs
      * gets the songs for this label, based on label name
-     * @return int[]
+     * @return integer[]
      */
     public function get_songs()
     {
@@ -331,64 +443,83 @@ class Label extends database_object implements library_item
         $db_results = Dba::read($sql, array($this->name));
 
         $results = array();
-        while ($r = Dba::fetch_assoc($db_results)) {
-            $results[] = $r['id'];
+        while ($row = Dba::fetch_assoc($db_results)) {
+            $results[] = $row['id'];
         }
 
         return $results;
-
     } // get_songs
 
+    /**
+     * remove
+     * @return PDOStatement|boolean
+     */
     public function remove()
     {
-        $sql = "DELETE FROM `label` WHERE `id` = ?";
+        $sql     = "DELETE FROM `label` WHERE `id` = ?";
         $deleted = Dba::write($sql, array($this->id));
         if ($deleted) {
-            Art::gc('label', $this->id);
-            Userflag::gc('label', $this->id);
-            Rating::gc('label', $this->id);
-            Shoutbox::gc('label', $this->id);
+            Art::garbage_collection('label', $this->id);
+            Userflag::garbage_collection('label', $this->id);
+            Rating::garbage_collection('label', $this->id);
+            Shoutbox::garbage_collection('label', $this->id);
+            Useractivity::garbage_collection('label', $this->id);
         }
 
         return $deleted;
     }
 
+    /**
+     * get_all_labels
+     * @return array
+     */
     public static function get_all_labels()
     {
-        $sql = "SELECT `id`, `name` FROM `label`";
+        $sql        = "SELECT `id`, `name` FROM `label`";
         $db_results = Dba::read($sql);
-        $results = array();
+        $results    = array();
         while ($row = Dba::fetch_assoc($db_results)) {
             $results[$row['id']] = $row['name'];
         }
+
         return $results;
     }
 
+    /**
+     * @param integer $artist_id
+     * @return array
+     */
     public static function get_labels($artist_id)
     {
         $sql = "SELECT `label`.`id`, `label`.`name` FROM `label` " .
                "LEFT JOIN `label_asso` ON `label_asso`.`label` = `label`.`id` " .
                "WHERE `label_asso`.`artist` = ?";
         $db_results = Dba::read($sql, array($artist_id));
-        $results = array();
+        $results    = array();
         while ($row = Dba::fetch_assoc($db_results)) {
             $results[$row['id']] = $row['name'];
         }
+
         return $results;
     }
 
     /**
      * get_display
      * This returns a csv formated version of the labels that we are given
+     * @param $labels
+     * @param boolean $link
+     * @return string
      */
-    public static function get_display($labels, $link=false)
+    public static function get_display($labels, $link = false)
     {
-        if (!is_array($labels)) { return ''; }
+        if (!is_array($labels)) {
+            return '';
+        }
 
         $results = '';
 
         // Iterate through the labels, format them according to type and element id
-        foreach ($labels as $label_id=>$value) {
+        foreach ($labels as $label_id => $value) {
             if ($link) {
                 $results .= '<a href="' . AmpConfig::get('web_path') . '/labels.php?action=show&label=' . $label_id . '" title="' . $value . '">';
             }
@@ -399,55 +530,59 @@ class Label extends database_object implements library_item
             $results .= ', ';
         }
 
-        $results = rtrim($results, ', ');
+        $results = rtrim((string) $results, ', ');
 
         return $results;
-
     } // get_display
 
     /**
      * update_label_list
      * Update the labels list based on commated list (ex. label1,label2,label3,..)
+     * @param $labels_comma
+     * @param integer $artist_id
+     * @param boolean $overwrite
+     * @return boolean
      */
     public static function update_label_list($labels_comma, $artist_id, $overwrite)
     {
-        debug_event('label.class', 'Updating labels for values {'.$labels_comma.'} artist {'.$artist_id.'}', '5');
+        debug_event(self::class, 'Updating labels for values {' . $labels_comma . '} artist {' . $artist_id . '}', 5);
 
-        $clabels = Label::get_labels($artist_id);
-        $editedLabels = explode(",", $labels_comma);
+        $clabels      = Label::get_labels($artist_id);
+        $filter_list  = preg_split('/(\s*,*\s*)*,+(\s*,*\s*)*/', $labels_comma);
+        $editedLabels = (is_array($filter_list)) ? array_unique($filter_list) : array();
 
-        if (is_array($clabels)) {
-            foreach ($clabels as $clid => $clv) {
-                if ($clid) {
-                    $clabel = new Label($clid);
-                    debug_event('label.class', 'Processing label {'.$clabel->name.'}...', '5');
-                    $found = false;
+        foreach ($clabels as $clid => $clv) {
+            if ($clid) {
+                $clabel = new Label($clid);
+                debug_event(self::class, 'Processing label {' . $clabel->name . '}...', 5);
+                $found   = false;
+                $lstring = '';
 
-                    foreach ($editedLabels as  $lk => $lv) {
-                        if ($clabel->name == $lv) {
-                            $found = true;
-                            break;
-                        }
+                foreach ($editedLabels as $key => $value) {
+                    if ($clabel->name == $value) {
+                        $found   = true;
+                        $lstring = $key;
+                        break;
                     }
+                }
 
-                    if ($found) {
-                        debug_event('label.class', 'Already found. Do nothing.', '5');
-                        unset($editedLabels[$lk]);
-                    } else if ($overwrite) {
-                        debug_event('label.class', 'Not found in the new list. Delete it.', '5');
-                        $clabel->remove_artist_assoc($artist_id);
-                    }
+                if ($found) {
+                    debug_event(self::class, 'Already found. Do nothing.', 5);
+                    unset($editedLabels[$lstring]);
+                } elseif ($overwrite) {
+                    debug_event(self::class, 'Not found in the new list. Delete it.', 5);
+                    $clabel->remove_artist_assoc($artist_id);
                 }
             }
         }
 
         // Look if we need to add some new labels
-        foreach ($editedLabels as  $lk => $lv) {
-            if ($lv != '') {
-                debug_event('label.class', 'Adding new label {'.$lv.'}', '5');
-                $label_id = Label::lookup(array('name' => $lv));
+        foreach ($editedLabels as $key => $value) {
+            if ($value != '') {
+                debug_event(self::class, 'Adding new label {' . $value . '}', 4);
+                $label_id = Label::lookup(array('name' => $value));
                 if ($label_id === 0) {
-                    debug_event('label.class', 'Creating a label directly from artist editing is not allowed.', '5');
+                    debug_event(self::class, 'Creating a label directly from artist editing is not allowed.', 3);
                     //$label_id = Label::create(array('name' => $lv));
                 }
                 if ($label_id > 0) {
@@ -468,15 +603,10 @@ class Label extends database_object implements library_item
      */
     public static function clean_to_existing($labels)
     {
-        if (is_array($labels)) {
-            $ar = $labels;
-        } else {
-            $ar = explode(",", $labels);
-        }
-
-        $ret = array();
-        foreach ($ar as $label) {
-            $label = trim($label);
+        $array = (is_array($labels)) ? $labels : preg_split('/(\s*,*\s*)*,+(\s*,*\s*)*/', $labels);
+        $ret   = array();
+        foreach ($array as $label) {
+            $label = trim((string) $label);
             if (!empty($label)) {
                 if (Label::lookup(array('name' => $label)) > 0) {
                     $ret[] = $label;
@@ -486,4 +616,4 @@ class Label extends database_object implements library_item
 
         return (is_array($labels) ? $ret : implode(",", $ret));
     }
-}
+} // end label.class

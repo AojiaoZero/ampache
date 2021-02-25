@@ -2,34 +2,37 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
- *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * \
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
 /**
  * Sub-Ajax page, requires AJAX_INCLUDE
  */
-if (!defined('AJAX_INCLUDE')) { exit; }
+if (!defined('AJAX_INCLUDE')) {
+    return false;
+}
 
+// Switch on the actions
 switch ($_REQUEST['action']) {
     case 'search':
         $search = $_REQUEST['search'];
         $target = $_REQUEST['target'];
-        $limit = $_REQUEST['limit'] ?: 5;
+        $limit  = $_REQUEST['limit'] ?: 5;
 
         $results = array();
 
@@ -38,18 +41,18 @@ switch ($_REQUEST['action']) {
                 'limit' => $limit,
                 'type' => 'artist',
                 'rule_1_input' => $search,
-                'rule_1_operator' => '2',   // Starts with...
+                'rule_1_operator' => '2', // Starts with...
                 'rule_1' => 'name',
             );
             $sres = Search::run($searchreq);
-            // Litmit not reach, new search with another operator
+            // Limit not reached, new search with another operator
             if (count($sres) < $limit) {
-                $searchreq['limit'] = $limit - count($sres);
+                $searchreq['limit']           = $limit - count($sres);
                 $searchreq['rule_1_operator'] = '0';
-                $sres = array_unique(array_merge($sres, Search::run($searchreq)));
+                $sres                         = array_unique(array_merge($sres, Search::run($searchreq)));
             }
-            foreach ($sres as $id) {
-                $artist = new Artist($id);
+            foreach ($sres as $artistid) {
+                $artist = new Artist($artistid);
                 $artist->format(false);
                 $results[] = array(
                     'type' => T_('Artists'),
@@ -67,21 +70,21 @@ switch ($_REQUEST['action']) {
                 'limit' => $limit,
                 'type' => 'album',
                 'rule_1_input' => $search,
-                'rule_1_operator' => '2',   // Starts with...
+                'rule_1_operator' => '2', // Starts with...
                 'rule_1' => 'title',
             );
             $sres = Search::run($searchreq);
-            // Litmit not reach, new search with another operator
+            // Limit not reached, new search with another operator
             if (count($sres) < $limit) {
-                $searchreq['limit'] = $limit - count($sres);
+                $searchreq['limit']           = $limit - count($sres);
                 $searchreq['rule_1_operator'] = '0';
-                $sres = array_unique(array_merge($sres, Search::run($searchreq)));
+                $sres                         = array_unique(array_merge($sres, Search::run($searchreq)));
             }
-            foreach ($sres as $id) {
-                $album = new Album($id);
+            foreach ($sres as $albumid) {
+                $album = new Album($albumid);
                 $album->format(true);
                 $a_title = $album->f_title;
-                if ($album->disk) {
+                if ($album->disk && !$album->allow_group_disks && count($album->get_album_suite()) > 1) {
                     $a_title .= " [" . T_('Disk') . " " . $album->disk . "]";
                 }
                 $results[] = array(
@@ -100,26 +103,29 @@ switch ($_REQUEST['action']) {
                 'limit' => $limit,
                 'type' => 'song',
                 'rule_1_input' => $search,
-                'rule_1_operator' => '2',   // Starts with...
+                'rule_1_operator' => '2', // Starts with...
                 'rule_1' => 'title',
             );
             $sres = Search::run($searchreq);
-            // Litmit not reach, new search with another operator
+            // Limit not reached, new search with another operator
             if (count($sres) < $limit) {
-                $searchreq['limit'] = $limit - count($sres);
+                $searchreq['limit']           = $limit - count($sres);
                 $searchreq['rule_1_operator'] = '0';
-                $sres = array_unique(array_merge($sres, Search::run($searchreq)));
+                $sres                         = array_unique(array_merge($sres, Search::run($searchreq)));
             }
-            foreach ($sres as $id) {
-                $song = new Song($id);
+            $show_song_art = AmpConfig::get('show_song_art', false);
+            foreach ($sres as $songid) {
+                $song = new Song($songid);
                 $song->format(false);
-                $results[] = array(
+                $art_object = ($show_song_art) ? $song->id : $song->album;
+                $art_type   = ($show_song_art) ? 'song' : 'album';
+                $results[]  = array(
                     'type' => T_('Songs'),
                     'link' => $song->link,
                     'label' => $song->f_title_full,
                     'value' => $song->f_title_full,
                     'rels' => $song->f_artist_full,
-                    'image' => Art::url($song->album, 'album', null, 10),
+                    'image' => Art::url($art_object, $art_type, null, 10),
                 );
             }
         }
@@ -129,18 +135,18 @@ switch ($_REQUEST['action']) {
                 'limit' => $limit,
                 'type' => 'playlist',
                 'rule_1_input' => $search,
-                'rule_1_operator' => '2',   // Starts with...
+                'rule_1_operator' => '2', // Starts with...
                 'rule_1' => 'name',
             );
             $sres = Search::run($searchreq);
-            // Litmit not reach, new search with another operator
+            // Limit not reached, new search with another operator
             if (count($sres) < $limit) {
-                $searchreq['limit'] = $limit - count($sres);
+                $searchreq['limit']           = $limit - count($sres);
                 $searchreq['rule_1_operator'] = '0';
-                $sres = array_unique(array_merge($sres, Search::run($searchreq)));
+                $sres                         = array_unique(array_merge($sres, Search::run($searchreq)));
             }
-            foreach ($sres as $id) {
-                $playlist = new Playlist($id);
+            foreach ($sres as $playlistid) {
+                $playlist = new Playlist($playlistid);
                 $playlist->format(false);
                 $results[] = array(
                     'type' => T_('Playlists'),
@@ -158,19 +164,19 @@ switch ($_REQUEST['action']) {
                 'limit' => $limit,
                 'type' => 'label',
                 'rule_1_input' => $search,
-                'rule_1_operator' => '2',   // Starts with...
+                'rule_1_operator' => '2', // Starts with...
                 'rule_1' => 'name',
             );
             $sres = Search::run($searchreq);
 
-            // Litmit not reach, new search with another operator
+            // Limit not reached, new search with another operator
             if (count($sres) < $limit) {
-                $searchreq['limit'] = $limit - count($sres);
+                $searchreq['limit']           = $limit - count($sres);
                 $searchreq['rule_1_operator'] = '0';
-                $sres = array_unique(array_merge($sres, Search::run($searchreq)));
+                $sres                         = array_unique(array_merge($sres, Search::run($searchreq)));
             }
-            foreach ($sres as $id) {
-                $label = new Label($id);
+            foreach ($sres as $labelid) {
+                $label = new Label($labelid);
                 $label->format(false);
                 $results[] = array(
                     'type' => T_('Labels'),
@@ -184,21 +190,22 @@ switch ($_REQUEST['action']) {
         }
 
         if ($target == 'missing_artist' && AmpConfig::get('wanted')) {
-            $sres = Wanted::search_missing_artists($search);
-            $i = 0;
-            foreach ($sres as $r) {
+            $sres     = Wanted::search_missing_artists($search);
+            $count    = 0;
+            foreach ($sres as $artist) {
                 $results[] = array(
                     'type' => T_('Missing Artists'),
-                    'link' => AmpConfig::get('web_path') . '/artists.php?action=show_missing&mbid=' . $r['mbid'],
-                    'label' => $r['name'],
-                    'value' => $r['name'],
+                    'link' => AmpConfig::get('web_path') . '/artists.php?action=show_missing&mbid=' . $artist['mbid'],
+                    'label' => $artist['name'],
+                    'value' => $artist['name'],
                     'rels' => '',
                     'image' => '',
                 );
-                $i++;
+                $count++;
 
-                if ($i >= $limit)
+                if ($count >= $limit) {
                     break;
+                }
             }
         }
 
@@ -207,21 +214,21 @@ switch ($_REQUEST['action']) {
                 'limit' => $limit,
                 'type' => 'user',
                 'rule_1_input' => $search,
-                'rule_1_operator' => '2',   // Starts with...
+                'rule_1_operator' => '2', // Starts with...
                 'rule_1' => 'username',
             );
             $sres = Search::run($searchreq);
 
-            // Litmit not reach, new search with another operator
+            // Limit not reached, new search with another operator
             if (count($sres) < $limit) {
-                $searchreq['limit'] = $limit - count($sres);
+                $searchreq['limit']           = $limit - count($sres);
                 $searchreq['rule_1_operator'] = '0';
-                $sres = array_unique(array_merge($sres, Search::run($searchreq)));
+                $sres                         = array_unique(array_merge($sres, Search::run($searchreq)));
             }
-            foreach ($sres as $id) {
-                $user = new User($id);
+            foreach ($sres as $user_id) {
+                $user = new User($user_id);
                 $user->format();
-                $avatar = $user->get_avatar();
+                $avatar    = $user->get_avatar();
                 $results[] = array(
                     'type' => T_('Users'),
                     'link' => '',
@@ -233,11 +240,11 @@ switch ($_REQUEST['action']) {
             }
         }
 
-    break;
+        break;
     default:
         $results['rfc3514'] = '0x1';
-    break;
+        break;
 } // switch on action;
 
 // We always do this
-echo xoutput_from_array($results);
+echo (string) xoutput_from_array($results);

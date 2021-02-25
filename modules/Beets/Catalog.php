@@ -3,27 +3,32 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
 namespace Beets;
 
+use Album;
 use AmpConfig;
+use Lib\Metadata\Repository\Metadata;
+use Lib\Metadata\Repository\MetadataField;
+use library_item;
+use media;
 use UI;
 use Dba;
 use Song;
@@ -63,11 +68,14 @@ abstract class Catalog extends \Catalog
      * Constructor
      *
      * Catalog class constructor, pulls catalog information
+     * @param integer $catalog_id
      */
-    public function __construct($catalog_id = null) { // TODO: Basic constructer should be provided from parent
+    public function __construct($catalog_id = null)
+    {
+        // TODO: Basic constructor should be provided from parent
         if ($catalog_id) {
-            $this->id = intval($catalog_id);
-            $info = $this->get_info($catalog_id);
+            $this->id = (int) $catalog_id;
+            $info     = $this->get_info($catalog_id);
 
             foreach ($info as $key => $value) {
                 $this->$key = $value;
@@ -77,12 +85,13 @@ abstract class Catalog extends \Catalog
 
     /**
      *
-     * @param \media $media
-     * @return \media
+     * @param media $media
+     * @return media
      */
     public function prepare_media($media)
     {
-        debug_event('play', 'Started remote stream - ' . $media->file, 5);
+        debug_event('beets_catalog', 'Play: Started remote stream - ' . $media->file, 5);
+
         return $media;
     }
 
@@ -115,16 +124,16 @@ abstract class Catalog extends \Catalog
     public function add_to_catalog($options = null)
     {
         if (!defined('SSE_OUTPUT')) {
-            require AmpConfig::get('prefix') . '/templates/show_adds_catalog.inc.php';
+            require AmpConfig::get('prefix') . UI::find_template('show_adds_catalog.inc.php');
             flush();
         }
         set_time_limit(0);
         if (!defined('SSE_OUTPUT')) {
-            UI::show_box_top(T_('Running Beets Update') . '. . .');
+            UI::show_box_top(T_('Running Beets Update'));
         }
         $parser = $this->getParser();
         $parser->setHandler($this, 'addSong');
-        $parser->start($parser->getTimedCommand($this->listCommand, 'added', $this->last_add));
+        $parser->start($parser->getTimedCommand($this->listCommand, 'added', null));
         $this->updateUi('add', $this->addedSongs, null, true);
         $this->update_last_add();
 
@@ -144,10 +153,49 @@ abstract class Catalog extends \Catalog
         if ($this->checkSong($song)) {
             debug_event('beets_catalog', 'Skipping existing song ' . $song['file'], 5);
         } else {
-            if ($this->insertSong($song)) {
+            $album_id         = Album::check($song['album'], $song['year'], $song['disc'], $song['mbid'], $song['mb_releasegroupid'], $song['album_artist']);
+            $song['album_id'] = $album_id;
+            $songId           = $this->insertSong($song);
+            if (Song::isCustomMetadataEnabled() && $songId) {
+                $songObj = new Song($songId);
+                $this->addMetadata($songObj, $song);
                 $this->updateUi('add', ++$this->addedSongs, $song);
             }
         }
+    }
+
+    /**
+     * @param library_item $libraryItem
+     * @param $metadata
+     */
+    public function addMetadata(library_item $libraryItem, $metadata)
+    {
+        $tags = $this->getCleanMetadata($libraryItem, $metadata);
+
+        foreach ($tags as $tag => $value) {
+            $field = $libraryItem->getField($tag);
+            $libraryItem->addMetadata($field, $value);
+        }
+    }
+
+    /**
+     * Get rid of all tags found in the libraryItem
+     * @param library_item $libraryItem
+     * @param array $metadata
+     * @return array
+     */
+    protected function getCleanMetadata(library_item $libraryItem, $metadata)
+    {
+        $tags = array_diff($metadata, get_object_vars($libraryItem));
+        $keys = array_merge(
+            isset($libraryItem::$aliases) ? $libraryItem::$aliases : array(),
+            array_keys(get_object_vars($libraryItem))
+        );
+        foreach ($keys as $key) {
+            unset($tags[$key]);
+        }
+
+        return $tags;
     }
 
     /**
@@ -162,10 +210,12 @@ abstract class Catalog extends \Catalog
             debug_event('beets_catalog', 'Adding song ' . $song['file'], 5, 'ampache-catalog');
         } else {
             debug_event('beets_catalog', 'Insert failed for ' . $song['file'], 1);
-            Error::add('general', T_('Unable to Insert Song - %s'), $song['file']);
-            Error::display('general');
+            /* HINT: filename (file path) */
+            AmpError::add('general', T_('Unable to add Song - %s'), $song['file']);
+            AmpError::display('general');
         }
         flush();
+
         return $inserted;
     }
 
@@ -175,15 +225,16 @@ abstract class Catalog extends \Catalog
      */
     public function verify_catalog_proc()
     {
-        debug_event('verify', 'Starting on ' . $this->name, 5);
+        debug_event('beets_catalog', 'Verify: Starting on ' . $this->name, 5);
         set_time_limit(0);
 
-        /* @var $parser Handler */
+        /* @var Handler $parser */
         $parser = $this->getParser();
         $parser->setHandler($this, 'verifySong');
         $parser->start($parser->getTimedCommand($this->listCommand, 'mtime', $this->last_update));
         $this->updateUi('verify', $this->verifiedSongs, null, true);
         $this->update_last_update();
+
         return array('updated' => $this->verifiedSongs, 'total' => $this->verifiedSongs);
     }
 
@@ -193,9 +244,15 @@ abstract class Catalog extends \Catalog
      */
     public function verifySong($beetsSong)
     {
-        $song = new Song($this->getIdFromPath($beetsSong['file']));
+        $song                  = new Song($this->getIdFromPath($beetsSong['file']));
+        $beetsSong['album_id'] = $song->album;
+
         if ($song->id) {
             $song->update($beetsSong);
+            if (Song::isCustomMetadataEnabled()) {
+                $tags = $this->getCleanMetadata($song, $beetsSong);
+                $this->updateMetadata($song, $tags);
+            }
             $this->updateUi('verify', ++$this->verifiedSongs, $beetsSong);
         }
     }
@@ -208,14 +265,32 @@ abstract class Catalog extends \Catalog
      */
     public function clean_catalog_proc()
     {
-        $parser = $this->getParser();
+        $parser      = $this->getParser();
         $this->songs = $this->getAllSongfiles();
         $parser->setHandler($this, 'removeFromDeleteList');
         $parser->start($this->listCommand);
         $count = count($this->songs);
-        $this->deleteSongs($this->songs);
+        if ($count > 0) {
+            $this->deleteSongs($this->songs);
+        }
+        if (Song::isCustomMetadataEnabled()) {
+            Metadata::garbage_collection();
+            MetadataField::garbage_collection();
+        }
         $this->updateUi('clean', $this->cleanCounter, null, true);
+
         return $count;
+    }
+
+    /**
+     * move_catalog_proc
+     * This function updates the file path of the catalog to a new location (unsupported)
+     * @param string $new_path
+     * @return boolean
+     */
+    public function move_catalog_proc($new_path)
+    {
+        return false;
     }
 
     /**
@@ -250,10 +325,11 @@ abstract class Catalog extends \Catalog
      */
     protected function getIdFromPath($path)
     {
-        $sql = "SELECT `id` FROM `song` WHERE `file` = ?";
+        $sql        = "SELECT `id` FROM `song` WHERE `file` = ?";
         $db_results = Dba::read($sql, array($path));
 
         $row = Dba::fetch_row($db_results);
+
         return isset($row) ? $row[0] : false;
     }
 
@@ -263,13 +339,14 @@ abstract class Catalog extends \Catalog
      */
     public function getAllSongfiles()
     {
-        $sql = "SELECT `id`, `file` FROM `song` WHERE `catalog` = ?";
+        $sql        = "SELECT `id`, `file` FROM `song` WHERE `catalog` = ?";
         $db_results = Dba::read($sql, array($this->id));
 
         $files = array();
         while ($row = Dba::fetch_row($db_results)) {
             $files[$row[0]] = $row[1];
         }
+
         return $files;
     }
 
@@ -315,7 +392,7 @@ abstract class Catalog extends \Catalog
     }
 
     /**
-     * Doesent seems like we need this...
+     * Doesn't seems like we need this...
      * @param string $file_path
      */
     public function get_rel_path($file_path)
@@ -332,4 +409,15 @@ abstract class Catalog extends \Catalog
         parent::format();
     }
 
+    /**
+     * @param $song
+     * @param $tags
+     */
+    public function updateMetadata($song, $tags)
+    {
+        foreach ($tags as $tag => $value) {
+            $field = $song->getField($tag);
+            $song->updateOrInsertMetadata($field, $value);
+        }
+    }
 }

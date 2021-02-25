@@ -2,34 +2,33 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-$web_path = AmpConfig::get('web_path');
-?>
+$web_path = AmpConfig::get('web_path'); ?>
 <div id="information_actions">
     <ul>
         <li>
-            <a href="<?php echo AmpConfig::get('web_path'); ?>/admin/license.php?action=show_create"><?php echo T_('Create new license'); ?></a>
+            <a href="<?php echo AmpConfig::get('web_path'); ?>/admin/license.php?action=show_create"><?php echo T_('Create License'); ?></a>
         </li>
     </ul>
 </div>
-<table class="tabledata" cellpadding="0" cellspacing="0">
+<table class="tabledata">
     <thead>
         <tr class="th-top">
             <th class="cel_name"><?php echo T_('Name'); ?></th>
@@ -43,13 +42,14 @@ $web_path = AmpConfig::get('web_path');
             $libitem = new License($license_id);
             $libitem->format();
 
-            require AmpConfig::get('prefix') . '/templates/show_license_row.inc.php';
-        ?>
-        <?php } if (!count($object_ids)) { ?>
+            require AmpConfig::get('prefix') . UI::find_template('show_license_row.inc.php'); ?>
+        <?php
+        } if (!count($object_ids)) { ?>
         <tr class="<?php echo UI::flip_class(); ?>">
-            <td colspan="6" class="error"><?php echo T_('No Licenses Found'); ?></td>
+            <td colspan="6" class="error"><?php echo T_('No licenses found'); ?></td>
         </tr>
-        <?php } ?>
+        <?php
+        } ?>
     </tbody>
     <tfoot>
         <tr class="th-bottom">

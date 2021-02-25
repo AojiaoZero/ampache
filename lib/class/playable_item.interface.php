@@ -2,21 +2,22 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 
 /**
@@ -32,6 +33,7 @@ interface playable_item
      * format
      *
      * Creates member variables for output
+     * @param boolean $details
      */
     public function format($details = true);
 
@@ -60,13 +62,16 @@ interface playable_item
      * search_childrens
      *
      * Search for direct childrens. Return an array of `object_type`, `object_id` childrens matching the criteria.
+     * @param string $name
      */
     public function search_childrens($name);
 
-    /*
+    /**
      * get_medias
      *
      * Get all medias from all childrens. Return an array of `object_type`, `object_id` medias.
+     * @param string $filter_type
+     * @return mixed
      */
     public function get_medias($filter_type = null);
 
@@ -74,8 +79,7 @@ interface playable_item
      * get_catalogs
      *
      * Get all catalog ids related to this item.
-     * @return int[]
+     * @return integer[]
      */
     public function get_catalogs();
-
-} // end interface
+} // end playable_item.interface

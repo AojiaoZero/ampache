@@ -5,5 +5,6 @@
 
 # Apache 2.2
 <IfModule mod_access.c>
-	Allow from all
+    Order deny,allow
+    Allow from all
 </IfModule>

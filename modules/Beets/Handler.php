@@ -3,21 +3,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,11 +36,19 @@ abstract class Handler
      */
     protected $commandSeperator;
 
-    abstract protected function start($command);
+    /**
+     * @param $command
+     * @return mixed
+     */
+    abstract public function start($command);
 
+    /**
+     * @param Catalog $handler
+     * @param $command
+     */
     public function setHandler(Catalog $handler, $command)
     {
-        $this->handler = $handler;
+        $this->handler        = $handler;
         $this->handlerCommand = $command;
     }
 
@@ -56,14 +64,14 @@ abstract class Handler
 
     /**
      * Resolves the differences between Beets and Ampache properties
-     * @param type $song
-     * @return type
+     * @param array $song
+     * @return array
      */
     protected function mapFields($song)
     {
         foreach ($this->fieldMapping as $from => $to) {
             list($key, $format) = $to;
-            $song[$key] = sprintf($format, $song[$from]);
+            $song[$key]         = sprintf($format, $song[$from]);
         }
         $song['genre'] = preg_split('/[\s]?[,|;][\s?]/', $song['genre']);
 
@@ -89,7 +97,7 @@ abstract class Handler
             // Add an empty part so we get a trailing slash if needed
             $commandParts[] = '';
         }
+
         return implode($this->commandSeperator, $commandParts);
     }
-
 }

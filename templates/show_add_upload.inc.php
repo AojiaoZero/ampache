@@ -2,33 +2,30 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
- // Upload form from http://tutorialzine.com/2013/05/mini-ajax-file-upload-form/
-?>
+ // Upload form from http://tutorialzine.com/2013/05/mini-ajax-file-upload-form/?>
 <?php
 UI::show_box_top(T_('Upload'));
 $ajaxfs = AmpConfig::get('ajax_server') . '/fs.ajax.php';
-
-$artist = intval($_REQUEST['artist']);
-$album = intval($_REQUEST['album']);
-?>
+$artist = (int) (Core::get_request('artist'));
+$album  = (int) (Core::get_request('album')); ?>
 <div id="container" role="main">
     <div id="tree"></div>
     <div id="data">
@@ -38,7 +35,7 @@ $album = intval($_REQUEST['album']);
         <div class="treecontent default" style="text-align:center;"><?php echo T_('Target folder'); ?></div>
     </div>
 </div>
-<script src="<?php echo AmpConfig::get('web_path'); ?>/modules/jstree/jstree.min.js"></script>
+<script src="<?php echo AmpConfig::get('web_path'); ?>/lib/components/jstree/dist/jstree.min.js"></script>
 <script>
 $(window).resize(function () {
     var h = Math.max($(window).height() - 0, 420);
@@ -77,9 +74,9 @@ $(function () {
                     tmp.create.label = "New";
                     tmp.create.submenu = {
                         "create_folder" : {
-                            "separator_after"	: true,
-                            "label"				: "Folder",
-                            "action"			: function (data) {
+                            "separator_after"    : true,
+                            "label"                : "Folder",
+                            "action"            : function (data) {
                                 var inst = $.jstree.reference(data.reference),
                                     obj = inst.get_node(data.reference);
                                 inst.create_node(obj, { type : "default", text : "New folder" }, "last", function (new_node) {
@@ -98,7 +95,7 @@ $(function () {
                 'default' : { 'icon' : 'folder' },
                 'file' : { 'valid_children' : [], 'icon' : 'file' }
             },
-            'plugins' : ['state','dnd','sort','types','contextmenu','unique']
+            'plugins' : ['state', 'dnd', 'sort', 'types', 'contextmenu', 'unique']
         })
         .on('delete_node.jstree', function (e, data) {
             $.get('<?php echo $ajaxfs; ?>?operation=delete_node', { 'id' : data.node.id })
@@ -160,60 +157,69 @@ $(function () {
 </script>
 
 <form id="uploadfile" method="post" enctype="multipart/form-data" action="<?php echo AmpConfig::get('web_path'); ?>/upload.php">
-<input type="hidden" name="actionp" value="upload" />
+<input type="hidden" name="upload_action" value="upload" />
 <input type="hidden" id="folder" name="folder" value="" />
 <?php
 // Display a max file size client side if we know it
-if ($upload_max > 0) {
-?>
+if ($upload_max > 0) { ?>
     <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo $upload_max; ?>" />
 <?php
-}
-?>
-<table class="tabledata" cellpadding="0" cellspacing="0">
-<?php if (!AmpConfig::get('upload_user_artist')) { ?>
+} ?>
+<table class="tabledata">
+<?php if (Access::check('interface', 50)) {
+    ?>
+    <tr>
+    <h5><?php echo T_('Leave the artist and album fields blank to read file tags') ?></h5>
+    </tr>
+</table>
+<table class="tabledata">
 <tr>
     <td class="edit_dialog_content_header"><?php echo T_('Artist') ?></td>
-    <td>
-        <?php show_artist_select('artist', $artist, true, 1, Access::check('interface', 50), Access::check('interface', 50) ? null : $GLOBALS['user']->id); ?>
+    <td class="upload_select">
+        <?php show_artist_select('artist', $artist, true, 1, Access::check('interface', 50), Access::check('interface', 50) ? null : Core::get_global('user')->id); ?>
         <div id="artist_select_album_1">
             <?php echo Ajax::observe('artist_select_1', 'change', 'check_inline_song_edit("artist", 1)'); ?>
         </div>
     </td>
 </tr>
-<?php } ?>
 <tr>
     <td class="edit_dialog_content_header"><?php echo T_('Album') ?></td>
-    <td>
-        <?php show_album_select('album', $album, true, 1, Access::check('interface', 50), Access::check('interface', 50) ? null : $GLOBALS['user']->id); ?>
+    <td class="upload_select">
+        <?php show_album_select('album', $album, true, 1, Access::check('interface', 50), Access::check('interface', 50) ? null : Core::get_global('user')->id); ?>
         <div id="album_select_upload_1">
             <?php echo Ajax::observe('album_select_1', 'change', 'check_inline_song_edit("album", 1)'); ?>
         </div>
     </td>
 </tr>
+<?php
+} ?>
 <?php if (AmpConfig::get('licensing')) { ?>
 <tr>
     <td class="edit_dialog_content_header"><?php echo T_('Music License') ?></td>
-    <td>
-        <?php show_license_select('license', '', '0'); ?>
+    <td class="upload_select">
+        <?php show_license_select('license', 0, 0); ?>
         <div id="album_select_license_<?php echo $song->license ?>">
             <?php echo Ajax::observe('license_select', 'change', 'check_inline_song_edit("license", "0")'); ?>
         </div>
     </td>
 </tr>
-<?php } ?>
+<?php
+} ?>
+</table>
+<table class="tabledata">
 <tr>
     <td>
         <?php echo T_('Files'); ?>
         <?php
         if ($upload_max > 0) {
             echo " (< " . UI::format_bytes($upload_max) . ")";
-        }
-        ?>
+        } ?>
         <br /><br />
         <?php echo T_('Allowed file type'); ?>:<br />
         <?php echo str_replace("|", ", ", AmpConfig::get('catalog_file_pattern')); ?>
     </td>
+</tr>
+<tr>
     <td>
         <div id="dropfile">
             <?php echo T_('Drop File Here'); ?>
@@ -271,7 +277,7 @@ $(function(){
             var tpl = $('<li class="working"><input type="text" value="0" data-width="48" data-height="48"'+
                 ' data-fgColor="#0788a5" data-readOnly="1" data-bgColor="#3e4043" /><p></p><span></span></li>');
 
-            // Append the file name and file size
+          // Append the file name and file size
             tpl.find('p').text(data.files[0].name)
                          .append('<i>' + formatFileSize(data.files[0].size) + '</i>');
 

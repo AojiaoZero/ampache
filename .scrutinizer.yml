@@ -1,15 +1,20 @@
 filter:
     excluded_paths:
+        - 'lib/components/*'
+        - 'lib/vendor/*'
         - 'modules/*'
     paths: {  }
- 
+
 tools:
     php_mess_detector:
         enabled: true
         filter:
             excluded_paths:
+                - 'lib/components/*'
+                - 'lib/vendor/*'
                 - 'modules/*'
                 - 'themes/*'
+                - '.github.*'
             paths: {  }
     php_code_sniffer:
         enabled: false
@@ -21,6 +26,8 @@ tools:
         excluded_dirs: {  }
         filter:
             excluded_paths:
+                - 'lib/components/*'
+                - 'lib/vendor/*'
                 - 'modules/*'
             paths: {  }
     php_analyzer:
@@ -28,9 +35,13 @@ tools:
         extensions:
             - php
         dependency_paths:
+            - 'lib/components/*'
+            - 'lib/vendor/*'
             - 'modules/*'
         filter:
             excluded_paths:
+                - 'lib/components/*'
+                - 'lib/vendor/*'
                 - 'modules/*'
                 - 'themes/*'
             paths: {  }
@@ -44,16 +55,22 @@ tools:
             - '\bimplement(?:s|ed)?\b'
         filter:
             excluded_paths:
+                - 'lib/components/*'
+                - 'lib/vendor/*'
                 - 'modules/*'
             paths: {  }
     php_loc:
         enabled: true
         excluded_dirs:
+            - 'lib/components/*'
+            - 'lib/vendor/*'
             - 'modules/*'
     php_cpd:
         enabled: true
         excluded_dirs: {  }
         filter:
             excluded_paths:
+                - 'lib/components/*'
+                - 'lib/vendor/*'
                 - 'modules/*'
             paths: {  }

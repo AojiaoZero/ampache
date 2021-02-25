@@ -2,52 +2,48 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
- * Copyright 2001 - 2015 Ampache.org
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
+ * Copyright 2001 - 2020 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
 $boxtitle = T_('Statistical Graphs');
 if ($blink) {
     $boxtitle .= ' - ' . $blink;
-}
-?>
+} ?>
 <?php UI::show_box_top($boxtitle, 'box box_graph'); ?>
 <div class="stats_graph">
     <?php
     foreach ($gtypes as $gtype) {
-        $graph_link = AmpConfig::get('web_path') . "/graph.php?type=" . $gtype . "&start_date=" . $start_date . "&end_date=" . $end_date . "&zoom=" . $zoom . "&user_id=" . $user_id . "&object_type=" . $object_type . "&object_id=" . $object_id;
-    ?>
+        $graph_link = AmpConfig::get('web_path') . "/graph.php?type=" . $gtype . "&start_date=" . $start_date . "&end_date=" . $end_date . "&zoom=" . $zoom . "&user_id=" . $user_id . "&object_type=" . $object_type . "&object_id=" . $object_id; ?>
     <a href="<?php echo $graph_link; ?>&width=1400&height=690" target="_blank" title="<?php echo T_('Show large'); ?>"><img src="<?php echo $graph_link; ?>" /></a>
         <br /><br />
-    <?php } ?>
+    <?php
+    } ?>
 </div>
 
 <?php
-if (AmpConfig::get('geolocation')) {
-?>
+if (AmpConfig::get('geolocation')) { ?>
     <div class="stats_graph">
     <?php
         $graph = new Graph();
-        $graph->display_map($user_id, $object_type, $object_id, $start_date, $end_date, $zoom);
-    ?>
+        $graph->display_map($user_id, $object_type, $object_id, $start_date, $end_date, $zoom); ?>
     </div>
 <?php
-}
-?>
+    } ?>
 
 <form action='<?php echo get_current_path(); ?>' method='post' enctype='multipart/form-data'>
     <dl class="media_details">
@@ -70,10 +66,11 @@ if (AmpConfig::get('geolocation')) {
                 );
                 foreach ($date_formats as $dtype => $dname) {
                     echo "<option value='" . $dtype . "' ";
-                    if ($dtype == $zoom) echo "selected";
+                    if ($dtype == $zoom) {
+                        echo "selected";
+                    }
                     echo ">" . $dname . "</option>";
-                }
-            ?>
+                } ?>
             </select>
         </dd>
         <?php $rowparity = UI::flip_class(); ?>
@@ -85,7 +82,7 @@ if (AmpConfig::get('geolocation')) {
     <input type="hidden" name="user_id" value="<?php echo $user_id; ?>" />
     <input type="hidden" name="object_type" value="<?php echo $object_type; ?>" />
     <input type="hidden" name="object_id" value="<?php echo $object_id; ?>" />
-    <input type="hidden" name="action" value="<?php echo $_REQUEST['action']; ?>" />
+    <input type="hidden" name="action" value="<?php echo filter_input(INPUT_GET, 'action', FILTER_SANITIZE_URL); ?>" />
     <input type="hidden" name="type" value="<?php echo $type; ?>" />
 </form>
 <script>
